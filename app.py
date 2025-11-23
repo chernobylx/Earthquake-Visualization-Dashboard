@@ -74,9 +74,9 @@ def create_chart(df, width=800, height=600,
                       scale = alt.Scale(type = 'symlog'), 
                       axis = alt.Axis(values = [10,100,1000])),
             color = alt.condition(selectors[var],
-                                 alt.Color('magnitude:Q',
+                                 alt.Color(var + type,
                                            scale = alt.Scale(scheme = 'magma',
-                                                             domain = [df['magnitude'].min(), df['magnitude'].max()])),
+                                                             domain = [df[var].min(), df[var].max()])),
                                  alt.value('lightgrey')),
             order = alt.Order(var + type, sort = 'ascending')
         ).properties(
