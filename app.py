@@ -49,7 +49,7 @@ def create_chart(df, width=800, height=600,
     ColorLegend = alt.Legend(title = color_var)
     Color = alt.Color(color_var, scale = ColorScale, legend=ColorLegend)
     #Color = alt.Color('magnitude:Q', scale = alt.Scale(scheme = 'magma', domain = [df['magnitude'].min(), df['magnitude'].max()]))
-    SizeScale = alt.Scale(range=size_range)
+    SizeScale = alt.Scale(range=size_range, domain = [df[size_var[:-2]].min(), df[size_var[:-2]].max()])
     SizeLegend = alt.Legend(title = size_var)
     Size = alt.Size(size_var, scale=SizeScale, legend=SizeLegend)
 
