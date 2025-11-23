@@ -25,7 +25,7 @@ def create_chart(df, width=800, height=600,
                  color_var = 'significance', color_scheme = 'magma',
                  opacity_var = 'magnitude',
                  size_var = 'magnitude', size_range = [10, 200],
-                 filter_vars = ['magnitude', 'significance', 'depth', 'longitude', 'latitude']):
+                 filter_vars = ['time', 'magnitude', 'significance', 'depth', 'longitude', 'latitude']):
     
     rotation = [phi, theta, 0]
     Projection = alt.Projection(type = projection, rotate=rotation, scale = scale, translate = [width/2, height/2])
@@ -69,11 +69,16 @@ def create_chart(df, width=800, height=600,
             type = ':Q'
 
         hists[var] = alt.Chart(df).mark_bar().encode(
-            x = alt.X(var + type, bin=True),
-            y = 'count()',
+            x = alt.X(var + type, bin= alt.Bin(maxbins=30)),
+            y = alt.Y('count()', 
+                      scale = alt.Scale(type = 'symlog'), 
+                      axis = alt.Axis(values = [10,100,1000])),
             color = alt.condition(selectors[var],
-                                 alt.value('steelblue'),
-                                 alt.value('lightgrey'))
+                                 alt.Color('magnitude:Q',
+                                           scale = alt.Scale(scheme = 'magma',
+                                                             domain = [df['magnitude'].min(), df['magnitude'].max()])),
+                                 alt.value('lightgrey')),
+            order = alt.Order(var + type, sort = 'ascending')
         ).properties(
             width = 600,
             height = 25
@@ -163,7 +168,7 @@ app.layout = html.Div([
         [
             'Size Variable:',
             dcc.Dropdown(
-                options = eq.select_dtypes(include=['number']).columns.tolist(),
+                options = df.select_dtypes(include=['number']).columns.tolist(),
                 value = 'magnitude',
                 id='size_var'
             )
@@ -173,7 +178,7 @@ app.layout = html.Div([
         [
             'Color Variable:',
             dcc.Dropdown(
-                options = eq.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
+                options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
                 value = 'significance',
                 id = 'color_var'
             )
@@ -183,7 +188,7 @@ app.layout = html.Div([
         [
             'Opacity Variable:',
             dcc.Dropdown(
-                options = eq.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
+                options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
                 value = 'time',
                 id = 'opacity_var'
             )
@@ -208,7 +213,7 @@ app.layout = html.Div([
     Input('opacity_var', 'value')
 )
 def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, size_var, color_var, opacity_var):
-    chart_spec = create_chart(eq, 
+    chart_spec = create_chart(df, 
                               projection=proj_dd, 
                               phi=phi, theta=theta, 
                               scale = scale, 
