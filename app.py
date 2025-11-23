@@ -53,7 +53,7 @@ def create_chart(df, width=800, height=600,
     SizeLegend = alt.Legend(title = size_var)
     Size = alt.Size(size_var, scale=SizeScale, legend=SizeLegend)
 
-    OpacityScale = alt.Scale(range = [0.1, 1])
+    OpacityScale = alt.Scale(range = [0.1, 1], domain = [df[opacity_var[:-2]].min(), df[opacity_var[:-2]].max()])
     OpacityLegend = alt.Legend(title = opacity_var)
     Opacity = alt.Opacity(opacity_var, scale=OpacityScale, legend=OpacityLegend)
 
