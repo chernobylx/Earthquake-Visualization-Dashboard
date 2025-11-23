@@ -45,10 +45,10 @@ def create_chart(df, width=800, height=600,
     else:
         opacity_var += ':Q'
 
-    ColorScale = alt.Scale(scheme = color_scheme)
+    ColorScale = alt.Scale(scheme = color_scheme, domain = [df[color_var[:-2]].min(), df[color_var[:-2]].max()])
     ColorLegend = alt.Legend(title = color_var)
     Color = alt.Color(color_var, scale = ColorScale, legend=ColorLegend)
-
+    #Color = alt.Color('magnitude:Q', scale = alt.Scale(scheme = 'magma', domain = [df['magnitude'].min(), df['magnitude'].max()]))
     SizeScale = alt.Scale(range=size_range)
     SizeLegend = alt.Legend(title = size_var)
     Size = alt.Size(size_var, scale=SizeScale, legend=SizeLegend)
