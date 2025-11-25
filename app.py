@@ -25,7 +25,7 @@ def create_chart(df, width=800, height=600,
                  color_var = 'significance', color_scheme = 'magma',
                  opacity_var = 'magnitude',
                  size_var = 'magnitude', size_range = [10, 200],
-                 filter_vars = ['magnitude', 'significance', 'depth', 'longitude', 'latitude']):
+                 filter_vars = ['time', 'magnitude', 'significance', 'depth', 'longitude', 'latitude']):
     
     rotation = [phi, theta, 0]
     Projection = alt.Projection(type = projection, rotate=rotation, scale = scale, translate = [width/2, height/2])
@@ -72,8 +72,10 @@ def create_chart(df, width=800, height=600,
             x = alt.X(var + type, bin=True),
             y = 'count()',
             color = alt.condition(selectors[var],
-                                 alt.value('steelblue'),
-                                 alt.value('lightgrey'))
+                                 alt.Color('magnitude:Q',
+                                           scale = alt.Scale(scheme = color_scheme)),
+                                 alt.value('lightgrey')),
+            order = alt.Order(var+type, sort='ascending')
         ).properties(
             width = 600,
             height = 25
