@@ -45,7 +45,7 @@ def create_chart(df, width=800, height=600,
     else:
         opacity_var += ':Q'
 
-    ColorScale = alt.Scale(scheme = color_scheme)
+    ColorScale = alt.Scale(scheme = color_scheme, domain = [df[color_var[:-2]].min(), df[color_var[:-2]].max()])
     ColorLegend = alt.Legend(title = color_var)
     Color = alt.Color(color_var, scale = ColorScale, legend=ColorLegend)
 
