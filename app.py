@@ -193,10 +193,11 @@ app.layout = html.Div([
     html.Div(
         [
             'Filters:',
-            dcc.SelectMulti(
+            dcc.Dropdown(
+                multi=True,
                 options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
                 value = ['time', 'magnitude', 'significance'],
-                id = 'opacity_var'
+                id = 'filter_vars'
             )
         ]
     ),
