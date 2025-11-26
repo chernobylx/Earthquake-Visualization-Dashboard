@@ -121,6 +121,7 @@ def create_chart(df, width=1200, height=800,
         color = alt.condition(brush,
                             Color,
                             alt.value('lightgrey')),
+        order = alt.Order('time:T', sort='ascending'),
         tooltip = [
             alt.Tooltip('location:N', title='Location'),
             alt.Tooltip('magnitude:Q', title='Magnitude'),
