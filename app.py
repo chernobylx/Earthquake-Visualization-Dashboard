@@ -26,7 +26,7 @@ def create_chart(df, width=1200, height=800,
                  size_var = 'magnitude', size_range = [10, 200],
                  filter_vars = ['time', 'magnitude', 'significance', 'depth', 'longitude', 'latitude']):
     map_width = .6 * width
-    map_height = .6 * height
+    map_height = .8 * height
 
     filter_width = width
     filter_height = (height - map_height) / len(filter_vars)
@@ -241,8 +241,8 @@ def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, 
                               color_var=color_var,
                               opacity_var=opacity_var,
                                 filter_vars=filter_vars,
-                                width = 200,
-                                height = 100
+                                width = 1200,
+                                height = 500
                               ).properties(
                                   background = background).to_dict()
     return dvc.Vega(
