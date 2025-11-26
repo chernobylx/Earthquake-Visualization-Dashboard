@@ -12,12 +12,11 @@ from vega_datasets import data
 import dash_vega_components as dvc
 from dash import Dash, Input, Output, callback, dcc, html
 alt.data_transformers.disable_max_rows()
-import dash_daq
 
 df = pd.read_csv('test.csv')
 df.set_index('id', inplace=True)
 df['time'] = pd.to_datetime(df['time'], format = 'ISO8601')
-eq = df.sample(5000, random_state=42)
+df = df.sample(5000, random_state=42)
 
 def create_chart(df, width=800, height=600, 
                  projection ='equalEarth', phi = 0, theta = 0, scale = 100,
@@ -165,7 +164,7 @@ app.layout = html.Div([
         [
             'Size Variable:',
             dcc.Dropdown(
-                options = eq.select_dtypes(include=['number']).columns.tolist(),
+                options = df.select_dtypes(include=['number']).columns.tolist(),
                 value = 'magnitude',
                 id='size_var'
             )
@@ -175,23 +174,32 @@ app.layout = html.Div([
         [
             'Color Variable:',
             dcc.Dropdown(
-                options = eq.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
+                options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
                 value = 'significance',
                 id = 'color_var'
             )
         ]
     ),
-     html.Div(
+    html.Div(
         [
             'Opacity Variable:',
             dcc.Dropdown(
-                options = eq.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
+                options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
                 value = 'time',
                 id = 'opacity_var'
             )
         ]
     ),
-
+    html.Div(
+        [
+            'Filters:',
+            dcc.SelectMulti(
+                options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
+                value = ['time', 'magnitude', 'significance'],
+                id = 'opacity_var'
+            )
+        ]
+    ),
     html.Div(id='output_div'),
 
 ])
@@ -210,7 +218,7 @@ app.layout = html.Div([
     Input('opacity_var', 'value')
 )
 def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, size_var, color_var, opacity_var):
-    chart_spec = create_chart(eq, 
+    chart_spec = create_chart(df, 
                               projection=proj_dd, 
                               phi=phi, theta=theta, 
                               scale = scale, 
