@@ -18,16 +18,24 @@ df.set_index('id', inplace=True)
 df['time'] = pd.to_datetime(df['time'], format = 'ISO8601')
 df = df.sample(5000, random_state=42)
 
-def create_chart(df, width=800, height=600, 
+def create_chart(df, width=1200, height=800, 
                  projection ='equalEarth', phi = 0, theta = 0, scale = 100,
                  map_fill = 'darkgrey', map_stroke = 'lightgrey',
                  color_var = 'significance', color_scheme = 'magma',
                  opacity_var = 'magnitude',
                  size_var = 'magnitude', size_range = [10, 200],
                  filter_vars = ['time', 'magnitude', 'significance', 'depth', 'longitude', 'latitude']):
-    
+    map_width = .6 * width
+    map_height = .6 * height
+
+    filter_width = width
+    filter_height = (height - map_height) / len(filter_vars)
+
+    heatmap__width = width - map_width
+    heatmap_height = map_height
+
     rotation = [phi, theta, 0]
-    Projection = alt.Projection(type = projection, rotate=rotation, scale = scale, translate = [width/2, height/2])
+    Projection = alt.Projection(type = projection, rotate=rotation, scale = scale, translate = [map_width/2, map_height/2])
 
     if color_var == 'time':
         color_var += ':T'
@@ -76,8 +84,8 @@ def create_chart(df, width=800, height=600,
                                  alt.value('lightgrey')),
             order = alt.Order(var+type, sort='ascending')
         ).properties(
-            width = 600,
-            height = 25
+            width = filter_width,
+            height = filter_height,
         ).add_params(
             selectors[var]
         )
@@ -87,8 +95,8 @@ def create_chart(df, width=800, height=600,
         fill = map_fill,
         stroke = map_stroke
     ).properties(
-        width = width,
-        height = height,
+        width = map_width,
+        height = map_height,
         projection = Projection
     )
 
@@ -216,9 +224,10 @@ app.layout = html.Div([
     Input('background', 'value'),
     Input('size_var', 'value'),
     Input('color_var', 'value'),
-    Input('opacity_var', 'value')
+    Input('opacity_var', 'value'),
+    Input('filter_vars', 'value'),
 )
-def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, size_var, color_var, opacity_var):
+def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, size_var, color_var, opacity_var, filter_vars):
     chart_spec = create_chart(df, 
                               projection=proj_dd, 
                               phi=phi, theta=theta, 
@@ -227,7 +236,10 @@ def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, 
                               map_stroke = map_stroke,
                               size_var=size_var,
                               color_var=color_var,
-                              opacity_var=opacity_var
+                              opacity_var=opacity_var,
+                                filter_vars=filter_vars,
+                                width = 200,
+                                height = 100
                               ).properties(
                                   background = background).to_dict()
     return dvc.Vega(
