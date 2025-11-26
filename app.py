@@ -80,7 +80,7 @@ def create_chart(df, width=1200, height=800,
 
         hists[var] = alt.Chart(df).mark_bar().encode(
             x = alt.X(var + type, bin=True),
-            y = 'count()',
+            y = alt.Y('count()', title = ''),
             color = alt.condition(selectors[var],
                                  alt.Color('magnitude:Q',
                                            scale = alt.Scale(scheme = color_scheme)),
