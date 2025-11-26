@@ -35,7 +35,10 @@ def create_chart(df, width=1200, height=800,
     heatmap_height = map_height
 
     rotation = [phi, theta, 0]
-    Projection = alt.Projection(type = projection, rotate=rotation, scale = scale, translate = [map_width/2, map_height/2])
+    Projection = alt.Projection(type = projection, 
+                                rotate=rotation, 
+                                scale = scale, 
+                                translate = [map_width/2, map_height/2])
 
     if color_var == 'time':
         color_var += ':T'
@@ -148,7 +151,7 @@ app.layout = html.Div([
         dcc.Slider(-89.9,89.9,step=10,value=0,id = 'theta')]
     ),
     html.Div(
-        ['Scale:', dcc.Slider(100,1000,step=50,value=100,id = 'scale')]
+        ['Scale:', dcc.Slider(10,1000,step=10,value=100,id = 'scale')]
     ),
     html.Div(
         [
