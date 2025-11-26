@@ -28,7 +28,7 @@ def create_chart(df, width=1200, height=800,
     map_width = .6 * width
     map_height = .8 * height
 
-    filter_width = width
+    filter_width = map_width
     filter_height = (height - map_height) / len(filter_vars)
 
     heatmap__width = width - map_width
