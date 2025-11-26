@@ -74,12 +74,15 @@ def create_chart(df, width=1200, height=800,
                     
         selectors[var] = alt.selection_interval(name = var + '_brush')
         if var == 'time':
+            x = alt.X('year(' + var + '):T', bin=alt.Bin(maxbins=30))
             type = ':T'
+
         else:
             type = ':Q'
+            x = alt.X(var + type, bin=alt.Bin(maxbins=30))
 
         hists[var] = alt.Chart(df).mark_bar().encode(
-            x = alt.X(var + type, bin=True),
+            x = x,
             y = alt.Y('count()', title = ''),
             color = alt.condition(selectors[var],
                                  alt.Color('magnitude:Q',
