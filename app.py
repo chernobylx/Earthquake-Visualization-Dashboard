@@ -74,7 +74,7 @@ def create_chart(df, width=1200, height=800,
                     
         selectors[var] = alt.selection_interval(name = var + '_brush')
         if var == 'time':
-            x = alt.X('year(' + var + '):T', bin=alt.Bin(maxbins=30), title = None)
+            x = alt.X('year(time):T', bin=alt.Bin(maxbins=30), title = None)
             type = ':T'
 
         else:
@@ -95,6 +95,9 @@ def create_chart(df, width=1200, height=800,
         ).add_params(
             selectors[var]
         )
+
+
+    
 
     topo = alt.topo_feature(data.world_110m.url, 'countries')
     earth = alt.Chart(topo).mark_geoshape(
@@ -136,10 +139,26 @@ def create_chart(df, width=1200, height=800,
         *selectors.values()
     )
 
+    heatmap = alt.Chart(df).mark_rect().encode(
+        x = alt.X('yearmonth(time):T', bin = alt.Bin(maxbins = 30), title = 'Time'),
+        y = alt.Y('depth:Q',
+                  bin = alt.Bin(maxbins = 30),
+                  title = 'Depth (km)',
+                  scale = alt.Scale(reverse = True)),
+        color = alt.Color('max(magnitude):Q', scale = alt.Scale(scheme = color_scheme)),
+    ).properties(
+        width = heatmap__width,
+        height = heatmap_height
+    )
+
+
+
     earth+=quakes
 
     for hist in hists.values():
         earth &= hist
+
+    earth |= heatmap
     return earth
 #
 app = Dash()
@@ -147,7 +166,7 @@ app.layout = html.Div([
     html.H1('Title'),
     html.Div(
         ['Projection:',
-         dcc.Dropdown(['equalEarth', 'mercator', 'azimuthalEqualArea'], 'mercator', id='proj_dd')]
+         dcc.Dropdown(['equalEarth', 'mercator', 'azimuthalEqualArea'], 'equalEarth', id='proj_dd')]
     ),
     html.Div(
         ['Rotate:',
@@ -155,7 +174,7 @@ app.layout = html.Div([
         dcc.Slider(-89.9,89.9,step=10,value=0,id = 'theta')]
     ),
     html.Div(
-        ['Scale:', dcc.Slider(10,1000,step=10,value=100,id = 'scale')]
+        ['Scale:', dcc.Slider(10,1000,step=10,value=120,id = 'scale')]
     ),
     html.Div(
         [
@@ -190,7 +209,7 @@ app.layout = html.Div([
             'Color Variable:',
             dcc.Dropdown(
                 options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
-                value = 'significance',
+                value = 'magnitude',
                 id = 'color_var'
             )
         ]
@@ -200,7 +219,7 @@ app.layout = html.Div([
             'Opacity Variable:',
             dcc.Dropdown(
                 options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
-                value = 'time',
+                value = 'significance',
                 id = 'opacity_var'
             )
         ]
