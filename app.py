@@ -76,7 +76,7 @@ def create_chart(df, width=1200, height=800,
         if var == 'time':
             x = alt.X('time:T',
                       timeUnit = 'year',
-                      axis = alt.Axis(format = '%y-%m'), 
+                      axis = alt.Axis(format = '%Y'), 
                       bin=True, 
                       title = None)
             type = ':T'
@@ -150,7 +150,7 @@ def create_chart(df, width=1200, height=800,
                   bin = alt.BinParams(step = 365*24*60*60*1000),
                   title = 'Time'),
         y = alt.Y('depth:Q',
-                  bin = alt.BinParams(),
+                  bin = alt.BinParams(step = 25),
                   title = 'Depth (km)',
                   scale = alt.Scale(reverse = True)),
         color = alt.Color('max(magnitude):Q', 
