@@ -155,6 +155,9 @@ def create_chart(df, width=1200, height=800,
                   scale = alt.Scale(reverse = True)),
         color = alt.Color('max(magnitude):Q', 
                           scale = alt.Scale(scheme = color_scheme)),
+        tooltip = [alt.Tooltip('depth:Q', title='Depth (km)'),
+                   alt.Tooltip('time:T', title='Time'),
+                   alt.Tooltip('max(magnitude):Q', title='Max Magnitude')]
     ).properties(
         width = heatmap__width,
         height = heatmap_height
