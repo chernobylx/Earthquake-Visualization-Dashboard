@@ -153,7 +153,7 @@ def create_chart(df, width=1200, height=800,
                       bin = alt.BinParams(step = 365 * day),
                       title = 'Date')
         else:
-            X = alt.X(y_var+':Q',
+            X = alt.X(x_var+':Q',
                       axis = alt.Axis(),
                       bin = alt.BinParams(),
                       title = y_var.capitalize())
