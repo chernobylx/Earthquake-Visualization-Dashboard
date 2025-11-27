@@ -20,16 +20,19 @@ df = df.sample(5000, random_state=42)
 
 def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color_var='max(magnitude)', ):
         day = 24*60*60*1000
+
         if x_var == 'time':
             X = alt.X('time:T',
                       axis = alt.Axis(format = '%Y'),
                       bin = alt.BinParams(step = 365 * day),
                       title = 'Date')
+            X_tooltip = alt.Tooltip('time:T', title='Time')
         else:
             X = alt.X(x_var+':Q',
                       axis = alt.Axis(),
                       bin = alt.BinParams(),
                       title = x_var.capitalize())
+            X_tooltip = alt.Tooltip(x_var+':Q', title=x_var.capitalize())
 
         reversed_y = (y_var == 'depth')
         if y_var == 'time':
@@ -37,12 +40,14 @@ def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color
                       axis = alt.Axis(format = '%Y'),
                       bin = alt.BinParams(step = 365 * day),
                       title = 'Date')
+            Y_tooltip = alt.Tooltip('time:T', title='Time')
         else:
             Y = alt.Y(y_var+':Q',
                       axis = alt.Axis(),
                       scale = alt.Scale(reverse = reversed_y),
                       bin = alt.BinParams(),
                       title = y_var.capitalize())
+            Y_tooltip = alt.Tooltip(y_var+':Q', title=y_var.capitalize())
         
         Color = alt.Color(color_var,
                           scale = alt.Scale(scheme = 'magma'))
@@ -52,8 +57,8 @@ def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color
             x = X,
             y = Y,
             color = Color,
-            tooltip = [alt.Tooltip(x_var+':Q', title = x_var.capitalize()),
-                       alt.Tooltip(y_var+':Q', title = y_var.capitalize()),
+            tooltip = [X_tooltip,
+                       Y_tooltip,
                        alt.Tooltip(color_var+':Q', title = color_var.capitalize())]
         ).transform_filter(
             *filters
