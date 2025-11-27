@@ -26,7 +26,7 @@ def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color
                       axis = alt.Axis(format = '%Y'),
                       bin = alt.BinParams(step = 365 * day),
                       title = 'Date')
-            X_tooltip = alt.Tooltip('time:T', title='Time')
+            X_tooltip = alt.Tooltip('year(time):T', title='Time')
         else:
             X = alt.X(x_var+':Q',
                       axis = alt.Axis(),
@@ -40,7 +40,7 @@ def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color
                       axis = alt.Axis(format = '%Y'),
                       bin = alt.BinParams(step = 365 * day),
                       title = 'Date')
-            Y_tooltip = alt.Tooltip('time:T', title='Time')
+            Y_tooltip = alt.Tooltip('year(time):T', title='Time')
         else:
             Y = alt.Y(y_var+':Q',
                       axis = alt.Axis(),
