@@ -18,6 +18,44 @@ df.set_index('id', inplace=True)
 df['time'] = pd.to_datetime(df['time'], format = 'ISO8601')
 df = df.sample(5000, random_state=42)
 
+def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color_var='max(magnitude)', ):
+        day = 24*60*60*1000
+        if x_var == 'time':
+            X = alt.X('time:T',
+                      axis = alt.Axis(format = '%Y'),
+                      bin = alt.BinParams(step = 365 * day),
+                      title = 'Date')
+        else:
+            X = alt.X(x_var+':Q',
+                      axis = alt.Axis(),
+                      bin = alt.BinParams(),
+                      title = x_var.capitalize())
+
+        reversed_y = (y_var == 'depth')
+        if y_var == 'time':
+            Y = alt.Y('time:T',
+                      axis = alt.Axis(format = '%Y'),
+                      bin = alt.BinParams(step = 365 * day),
+                      title = 'Date')
+        else:
+            Y = alt.Y(y_var+':Q',
+                      axis = alt.Axis(),
+                      scale = alt.Scale(reverse = reversed_y),
+                      bin = alt.BinParams(),
+                      title = y_var.capitalize())
+        
+        Color = alt.Color(color_var,
+                          scale = alt.Scale(scheme = 'magma'))
+            
+            
+        chart = alt.Chart(df).mark_rect().encode(
+            x = X,
+            y = Y,
+            color = Color
+        ).transform_filter(
+            *filters
+        )
+        return chart
 def create_chart(df, width=1200, height=800, 
                  projection ='equalEarth', phi = 0, theta = 0, scale = 100,
                  map_fill = 'darkgrey', map_stroke = 'lightgrey',
@@ -145,50 +183,15 @@ def create_chart(df, width=1200, height=800,
         *selectors.values()
     )
 
-    def create_heatmap(df, filters, x_var='time', y_var='depth', color_var='max(magnitude)', width=heatmap__width, height=heatmap_height):
-        day = 24*60*60*1000
-        if x_var == 'time':
-            X = alt.X('time:T',
-                      axis = alt.Axis(format = '%Y'),
-                      bin = alt.BinParams(step = 365 * day),
-                      title = 'Date')
-        else:
-            X = alt.X(x_var+':Q',
-                      axis = alt.Axis(),
-                      bin = alt.BinParams(),
-                      title = x_var.capitalize())
-
-        reversed_y = (y_var == 'depth')
-        if y_var == 'time':
-            Y = alt.Y('time:T',
-                      axis = alt.Axis(format = '%Y'),
-                      bin = alt.BinParams(step = 365 * day),
-                      title = 'Date')
-        else:
-            Y = alt.Y(y_var+':Q',
-                      axis = alt.Axis(),
-                      scale = alt.Scale(reverse = reversed_y),
-                      bin = alt.BinParams(),
-                      title = y_var.capitalize())
-        
-        Color = alt.Color(color_var,
-                          scale = alt.Scale(scheme = 'magma'))
-            
-            
-        chart = alt.Chart(df).mark_rect().encode(
-            x = X,
-            y = Y,
-            color = Color
-        ).transform_filter(
-            *filters
-        )
-        return chart
+    
     
     filters = [selector for selector in selectors.values()]
     filters.append(brush)
     heatmap = create_heatmap(df, filters = filters,
                              x_var = heatmap_x,
                              y_var = heatmap_y,
+                             width = heatmap__width,
+                             height = heatmap_height,
                              color_var = 'max(magnitude)')
 
 
