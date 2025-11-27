@@ -74,7 +74,11 @@ def create_chart(df, width=1200, height=800,
                     
         selectors[var] = alt.selection_interval(name = var + '_brush')
         if var == 'time':
-            x = alt.X('year(time):T', bin=alt.Bin(maxbins=30), title = None)
+            x = alt.X('time:T',
+                      timeUnit = 'year',
+                      axis = alt.Axis(format = '%y-%m'), 
+                      bin=True, 
+                      title = None)
             type = ':T'
 
         else:
@@ -139,16 +143,24 @@ def create_chart(df, width=1200, height=800,
         *selectors.values()
     )
 
+
     heatmap = alt.Chart(df).mark_rect().encode(
-        x = alt.X('yearmonth(time):T', bin = alt.Bin(maxbins = 30), title = 'Time'),
+        x = alt.X('time:T', 
+                  axis = alt.Axis(format='%Y'), 
+                  bin = alt.BinParams(step = 365*24*60*60*1000),
+                  title = 'Time'),
         y = alt.Y('depth:Q',
-                  bin = alt.Bin(maxbins = 30),
+                  bin = alt.BinParams(),
                   title = 'Depth (km)',
                   scale = alt.Scale(reverse = True)),
-        color = alt.Color('max(magnitude):Q', scale = alt.Scale(scheme = color_scheme)),
+        color = alt.Color('max(magnitude):Q', 
+                          scale = alt.Scale(scheme = color_scheme)),
     ).properties(
         width = heatmap__width,
         height = heatmap_height
+    ).transform_filter(
+        brush,
+        *selectors.values()
     )
 
 
