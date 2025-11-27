@@ -24,7 +24,9 @@ def create_chart(df, width=1200, height=800,
                  color_var = 'significance', color_scheme = 'magma',
                  opacity_var = 'magnitude',
                  size_var = 'magnitude', size_range = [10, 200],
-                 filter_vars = ['time', 'magnitude', 'significance', 'depth', 'longitude', 'latitude']):
+                 filter_vars = ['time', 'magnitude', 'significance', 'depth', 'longitude', 'latitude'],
+                 heatmap_x = 'time',
+                 heatmap_y = 'depth'):
     map_width = .6 * width
     map_height = .8 * height
 
@@ -143,7 +145,7 @@ def create_chart(df, width=1200, height=800,
         *selectors.values()
     )
 
-    def create_heatmap(df, x_var='time', y_var='depth', color_var='max(magnitude)'):
+    def create_heatmap(df, filters, x_var='time', y_var='depth', color_var='max(magnitude)', width=heatmap__width, height=heatmap_height):
         day = 24*60*60*1000
         if x_var == 'time':
             X = alt.X('time:T',
@@ -164,7 +166,8 @@ def create_chart(df, width=1200, height=800,
                       title = 'Date')
         else:
             Y = alt.Y(y_var+':Q',
-                      axis = alt.Axis(reversed = reversed_y),
+                      axis = alt.Axis(),
+                      scale = alt.Scale(reverse = reversed_y),
                       bin = alt.BinParams(),
                       title = y_var.capitalize())
         
@@ -176,9 +179,17 @@ def create_chart(df, width=1200, height=800,
             x = X,
             y = Y,
             color = Color
+        ).transform_filter(
+            *filters
         )
         return chart
-    heatmap = create_heatmap(df) 
+    
+    filters = [selector for selector in selectors.values()]
+    filters.append(brush)
+    heatmap = create_heatmap(df, filters = filters,
+                             x_var = heatmap_x,
+                             y_var = heatmap_y,
+                             color_var = 'max(magnitude)')
 
 
     earth+=quakes
@@ -263,6 +274,28 @@ app.layout = html.Div([
             )
         ]
     ),
+    html.Div(
+        [
+            'Heatmap X:',
+            dcc.Dropdown(
+                multi=False,
+                options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
+                value = 'time',
+                id = 'heatmap_x'
+            )
+        ]
+    ),
+    html.Div(
+        [
+            'Heatmap Y:',
+            dcc.Dropdown(
+                multi=False,
+                options = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist(),
+                value = 'depth',
+                id = 'heatmap_y'
+            )
+        ]
+    ),
     html.Div(id='output_div'),
 
 ])
@@ -280,8 +313,13 @@ app.layout = html.Div([
     Input('color_var', 'value'),
     Input('opacity_var', 'value'),
     Input('filter_vars', 'value'),
+    Input('heatmap_x', 'value'),
+    Input('heatmap_y', 'value'),
 )
-def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, size_var, color_var, opacity_var, filter_vars):
+def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, 
+                  size_var, color_var, opacity_var, 
+                  filter_vars, 
+                  heatmap_x, heatmap_y):
     chart_spec = create_chart(df, 
                               projection=proj_dd, 
                               phi=phi, theta=theta, 
@@ -291,9 +329,11 @@ def update_output(proj_dd, phi, theta, scale, map_fill, map_stroke, background, 
                               size_var=size_var,
                               color_var=color_var,
                               opacity_var=opacity_var,
-                                filter_vars=filter_vars,
-                                width = 1200,
-                                height = 500
+                              filter_vars=filter_vars,
+                              heatmap_x=heatmap_x,
+                              heatmap_y=heatmap_y,
+                              width = 1200,
+                              height = 500,
                               ).properties(
                                   background = background).to_dict()
     return dvc.Vega(
