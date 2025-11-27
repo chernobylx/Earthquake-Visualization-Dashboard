@@ -120,38 +120,42 @@ def create_chart(df, width=1200, height=800,
     OpacityLegend = alt.Legend(title = opacity_var)
     Opacity = alt.Opacity(opacity_var, scale=OpacityScale, legend=OpacityLegend)
 
+    def create_hists_selectors(df, filter_vars):
+        
+        hists = {}
+        selectors = {}
+        for var in filter_vars:
+                        
+            selectors[var] = alt.selection_interval(name = var + '_brush')
+            if var == 'time':
+                x = alt.X('time:T',
+                        timeUnit = 'year',
+                        axis = alt.Axis(format = '%Y'), 
+                        bin=True, 
+                        title = None)
+                type = ':T'
 
-    hists = {}
-    selectors = {}
-    for var in filter_vars:
-                    
-        selectors[var] = alt.selection_interval(name = var + '_brush')
-        if var == 'time':
-            x = alt.X('time:T',
-                      timeUnit = 'year',
-                      axis = alt.Axis(format = '%Y'), 
-                      bin=True, 
-                      title = None)
-            type = ':T'
+            else:
+                type = ':Q'
+                x = alt.X(var + type, bin=alt.Bin(maxbins=30), title = None)
 
-        else:
-            type = ':Q'
-            x = alt.X(var + type, bin=alt.Bin(maxbins=30), title = None)
-
-        hists[var] = alt.Chart(df).mark_bar().encode(
-            x = x,
-            y = alt.Y('count()', title = var[:4]),
-            color = alt.condition(selectors[var],
-                                 alt.Color('magnitude:Q',
-                                           scale = alt.Scale(scheme = color_scheme)),
-                                 alt.value('lightgrey')),
-              order = alt.Order(var+type, sort='ascending')
-            ).properties(
-                width = filter_width,
-                height = filter_height,
-            ).add_params(
-                selectors[var]
-            )
+            hists[var] = alt.Chart(df).mark_bar().encode(
+                x = x,
+                y = alt.Y('count()', title = var[:4]),
+                color = alt.condition(selectors[var],
+                                    alt.Color('magnitude:Q',
+                                            scale = alt.Scale(scheme = color_scheme)),
+                                    alt.value('lightgrey')),
+                order = alt.Order(var+type, sort='ascending')
+                ).properties(
+                    width = filter_width,
+                    height = filter_height,
+                ).add_params(
+                    selectors[var]
+                )
+        return hists, selectors
+    
+    hists, selectors = create_hists_selectors(df, filter_vars)
 
 
 
