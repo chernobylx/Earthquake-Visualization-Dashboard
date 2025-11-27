@@ -13,10 +13,15 @@ import dash_vega_components as dvc
 from dash import Dash, Input, Output, callback, dcc, html
 alt.data_transformers.disable_max_rows()
 
+
 df = pd.read_csv('test.csv')
-df.set_index('id', inplace=True)
-df['time'] = pd.to_datetime(df['time'], format = 'ISO8601')
-df = df.sample(5000, random_state=42)
+
+def preprocess(df):
+    df.set_index('id', inplace=True)
+    df['time'] = pd.to_datetime(df['time'], format = 'ISO8601')
+    df = df.sample(5000, random_state=42)
+    return df
+df = preprocess(df)
 
 def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color_var='max(magnitude)', ):
         day = 24*60*60*1000
@@ -140,13 +145,14 @@ def create_chart(df, width=1200, height=800,
                                  alt.Color('magnitude:Q',
                                            scale = alt.Scale(scheme = color_scheme)),
                                  alt.value('lightgrey')),
-            order = alt.Order(var+type, sort='ascending')
-        ).properties(
-            width = filter_width,
-            height = filter_height,
-        ).add_params(
-            selectors[var]
-        )
+              order = alt.Order(var+type, sort='ascending')
+            ).properties(
+                width = filter_width,
+                height = filter_height,
+            ).add_params(
+                selectors[var]
+            )
+
 
 
     
