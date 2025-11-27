@@ -51,7 +51,10 @@ def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color
         chart = alt.Chart(df).mark_rect().encode(
             x = X,
             y = Y,
-            color = Color
+            color = Color,
+            tooltip = [alt.Tooltip(x_var+':Q', title = x_var.capitalize()),
+                       alt.Tooltip(y_var+':Q', title = y_var.capitalize()),
+                       alt.Tooltip(color_var+':Q', title = color_var.capitalize())]
         ).transform_filter(
             *filters
         )
