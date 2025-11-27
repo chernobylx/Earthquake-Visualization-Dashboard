@@ -69,6 +69,56 @@ def create_heatmap(df, filters,width, height, x_var='time', y_var='depth', color
             *filters
         )
         return chart
+def create_hists_selectors(df, filter_vars, filter_width, filter_height, color_scheme='magma'):
+    
+    hists = {}
+    selectors = {}
+    for var in filter_vars:
+                    
+        selectors[var] = alt.selection_interval(name = var + '_brush')
+        if var == 'time':
+            x = alt.X('time:T',
+                    timeUnit = 'year',
+                    axis = alt.Axis(format = '%Y'), 
+                    bin=True, 
+                    title = None)
+            type = ':T'
+
+        else:
+            type = ':Q'
+            x = alt.X(var + type, bin=alt.Bin(maxbins=30), title = None)
+
+        hists[var] = alt.Chart(df).mark_bar().encode(
+            x = x,
+            y = alt.Y('count()', title = var[:4]),
+            color = alt.condition(selectors[var],
+                                alt.Color('magnitude:Q',
+                                        scale = alt.Scale(scheme = color_scheme)),
+                                alt.value('lightgrey')),
+            order = alt.Order(var+type, sort='ascending')
+            ).properties(
+                width = filter_width,
+                height = filter_height,
+            ).add_params(
+                selectors[var]
+            )
+    return hists, selectors
+def create_map(map_fill, map_stroke, map_width, map_height, Projection):
+    topo = alt.topo_feature(data.world_110m.url, 'countries')
+    earth = alt.Chart(topo).mark_geoshape(
+        fill = map_fill,
+        stroke = map_stroke
+    ).properties(
+        width = map_width,
+        height = map_height,
+        projection = Projection
+    )
+
+    graticule = alt.Chart(alt.graticule()).mark_geoshape().properties(projection = Projection)
+
+    earth += graticule
+    return earth
+
 def create_chart(df, width=1200, height=800, 
                  projection ='equalEarth', phi = 0, theta = 0, scale = 100,
                  map_fill = 'darkgrey', map_stroke = 'lightgrey',
@@ -120,62 +170,17 @@ def create_chart(df, width=1200, height=800,
     OpacityLegend = alt.Legend(title = opacity_var)
     Opacity = alt.Opacity(opacity_var, scale=OpacityScale, legend=OpacityLegend)
 
-    def create_hists_selectors(df, filter_vars):
-        
-        hists = {}
-        selectors = {}
-        for var in filter_vars:
-                        
-            selectors[var] = alt.selection_interval(name = var + '_brush')
-            if var == 'time':
-                x = alt.X('time:T',
-                        timeUnit = 'year',
-                        axis = alt.Axis(format = '%Y'), 
-                        bin=True, 
-                        title = None)
-                type = ':T'
 
-            else:
-                type = ':Q'
-                x = alt.X(var + type, bin=alt.Bin(maxbins=30), title = None)
-
-            hists[var] = alt.Chart(df).mark_bar().encode(
-                x = x,
-                y = alt.Y('count()', title = var[:4]),
-                color = alt.condition(selectors[var],
-                                    alt.Color('magnitude:Q',
-                                            scale = alt.Scale(scheme = color_scheme)),
-                                    alt.value('lightgrey')),
-                order = alt.Order(var+type, sort='ascending')
-                ).properties(
-                    width = filter_width,
-                    height = filter_height,
-                ).add_params(
-                    selectors[var]
-                )
-        return hists, selectors
     
-    hists, selectors = create_hists_selectors(df, filter_vars)
+    hists, selectors = create_hists_selectors(df, filter_vars, filter_width, filter_height, color_scheme=color_scheme)
 
 
 
     
 
-    topo = alt.topo_feature(data.world_110m.url, 'countries')
-    earth = alt.Chart(topo).mark_geoshape(
-        fill = map_fill,
-        stroke = map_stroke
-    ).properties(
-        width = map_width,
-        height = map_height,
-        projection = Projection
-    )
-
-    graticule = alt.Chart(alt.graticule()).mark_geoshape().properties(projection = Projection)
-
-    earth += graticule
 
 
+    earth = create_map(map_fill, map_stroke, map_width, map_height, Projection)
     brush = alt.selection_interval(name = "brush")
 
     quakes = alt.Chart(df).mark_circle().encode(
