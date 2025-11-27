@@ -156,7 +156,7 @@ def create_chart(df, width=1200, height=800,
             X = alt.X(x_var+':Q',
                       axis = alt.Axis(),
                       bin = alt.BinParams(),
-                      title = y_var.capitalize())
+                      title = x_var.capitalize())
 
         reversed_y = (y_var == 'depth')
         if y_var == 'time':
