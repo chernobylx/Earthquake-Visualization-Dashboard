@@ -143,29 +143,42 @@ def create_chart(df, width=1200, height=800,
         *selectors.values()
     )
 
+    def create_heatmap(df, x_var='time', y_var='depth', color_var='max(magnitude)'):
+        day = 24*60*60*1000
+        if x_var == 'time':
+            X = alt.X('time:T',
+                      axis = alt.Axis(format = '%Y'),
+                      bin = alt.BinParams(step = 365 * day),
+                      title = 'Date')
+        else:
+            X = alt.X(y_var+':Q',
+                      axis = alt.Axis(),
+                      bin = alt.BinParams(),
+                      title = y_var.capitalize())
 
-    heatmap = alt.Chart(df).mark_rect().encode(
-        x = alt.X('time:T', 
-                  axis = alt.Axis(format='%Y'), 
-                  bin = alt.BinParams(step = 365*24*60*60*1000),
-                  title = 'Time'),
-        y = alt.Y('depth:Q',
-                  bin = alt.BinParams(step = 25),
-                  title = 'Depth (km)',
-                  scale = alt.Scale(reverse = True)),
-        color = alt.Color('max(magnitude):Q', 
-                          scale = alt.Scale(scheme = color_scheme)),
-        tooltip = [alt.Tooltip('depth:Q', title='Depth (km)'),
-                   alt.Tooltip('time:T', title='Time'),
-                   alt.Tooltip('max(magnitude):Q', title='Max Magnitude')]
-    ).properties(
-        width = heatmap__width,
-        height = heatmap_height
-    ).transform_filter(
-        brush,
-        *selectors.values()
-    )
-
+        reversed_y = (y_var == 'depth')
+        if y_var == 'time':
+            Y = alt.Y('time:T',
+                      axis = alt.Axis(format = '%Y'),
+                      bin = alt.BinParams(step = 365 * day),
+                      title = 'Date')
+        else:
+            Y = alt.Y(y_var+':Q',
+                      axis = alt.Axis(reversed = reversed_y),
+                      bin = alt.BinParams(),
+                      title = y_var.capitalize())
+        
+        Color = alt.Color(color_var,
+                          scale = alt.Scale(scheme = 'magma'))
+            
+            
+        chart = alt.Chart(df).mark_rect().encode(
+            x = X,
+            y = Y,
+            color = Color
+        )
+        return chart
+    heatmap = create_heatmap(df) 
 
 
     earth+=quakes
