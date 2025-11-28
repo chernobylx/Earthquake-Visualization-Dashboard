@@ -22,3 +22,15 @@ def test_missing_required_columns():
     })
     with pytest.raises(AssertionError, match="DataFrame must contain 'sig' column"):
         DataVisualizer(df)
+
+def test_incorrect_column_types():
+    df = pd.DataFrame({
+        'lat': [34.05],
+        'lon': [-118.25],
+        'mag': [4.5],
+        'sig': ['high'],  # Incorrect type
+        'depth': [10.0],
+        'time': [pd.Timestamp('2023-01-01T00:00:00Z')]
+    })
+    with pytest.raises(AssertionError, match="Column 'sig' must be of type int64"):
+        DataVisualizer(df)
