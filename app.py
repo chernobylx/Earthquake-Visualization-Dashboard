@@ -181,8 +181,8 @@ def create_chart(df, width=1200, height=800,
 
 
     earth = create_map(map_fill, map_stroke, map_width, map_height, Projection)
-    brush = alt.selection_interval(name = "brush")
 
+    brush = alt.selection_interval(name = "brush")
     quakes = alt.Chart(df).mark_circle().encode(
         longitude = 'longitude:Q',
         latitude = 'latitude:Q',
