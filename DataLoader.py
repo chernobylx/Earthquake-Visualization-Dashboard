@@ -72,3 +72,10 @@ class RequestParams:
 
 
 
+class DataLoader:
+    url: str = 'https://earthquake.usgs.gov/fdsnws/event/1/'
+
+    def __init__(self, params: RequestParams) -> None:
+        assert params.validate()
+        self.params = params
+
