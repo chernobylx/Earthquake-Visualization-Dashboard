@@ -53,7 +53,7 @@ class RequestParams:
 
     def validate(self):
         try:
-            assert self.format == 'geojson', f'format must be "geojson" not {self.format}'
+            assert self.format == 'geojson', f'format must be "geojson" not "{self.format}"'
             
             if (self.starttime != None) and (self.endtime != None):
                 assert self.starttime < self.endtime, "starttime must be before endtime"
