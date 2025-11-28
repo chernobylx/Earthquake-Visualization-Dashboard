@@ -6,5 +6,6 @@ from vega_datasets import data
 
 class DataVisualizer:
     def __init__(self, df: pd.DataFrame):
+        assert isinstance(df, pd.DataFrame), "Input must be a pandas DataFrame"
         #set internal dataframe
         self.df = df
