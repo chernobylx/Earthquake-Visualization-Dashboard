@@ -26,19 +26,22 @@ layout = html.Div([
         )],
         style = {'width': '200px'},
     ),
-
-    html.Button('Load', id='load_button', n_clicks = 0),
-
+    html.Div(
+        [
+            html.Button('Load', id='load_button', n_clicks = 0),
+            html.Button('Clear', id='clear_button', n_clicks = 0)
+        ]
+    ),
     html.Div(id='output_div')
 ])
 
 @callback(
-    Output('output_div', 'children'),
+    Output('output_div', 'children', allow_duplicate=True),
     State('date_range', 'start_date'),
     State('date_range', 'end_date'),
     State('mag_range', 'value'),
     Input('load_button', 'n_clicks'),
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 def update_output(start_date, end_date, 
                   magrange,
@@ -52,3 +55,12 @@ def update_output(start_date, end_date,
     params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=5)
     dl = DataLoader(params)
     return dl.count()
+
+@callback(
+    Output('output_div', 'children', allow_duplicate=True),
+    Input('clear_button', 'n_clicks'),
+    prevent_initial_call=True,
+    allow_duplicate = True
+)
+def clear_output(n_clicks):
+    return None
