@@ -85,16 +85,15 @@ class DataLoader:
         assert params.validate()
         self.params = params
 
-    def count(self, params: RequestParams)->int: 
+    def count(self)->int: 
         #performs a get request using count_url and params
         #returns the number of records that would be returned in a query
         try:
-            assert params.validate(), "Invalid RequestParams"
-            response = requests.get(self.count_url, params.__dict__)
-            if response.status_code != 200:
-                raise Exception(f'HTTP Request Error: {response.status_code}')
+            self.response = requests.get(self.count_url, self.params.__dict__)
+            if self.response.status_code != 200:
+                raise Exception(f'HTTP Request Error: {self.response.status_code}')
         except Exception as e:
             raise Exception(str(e))
         else:
-            body = json.loads(response.text)
-            return body['count']
+            self.body = json.loads(self.response.text)
+            return self.body['count']

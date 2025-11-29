@@ -20,7 +20,8 @@ class TestRequestParams:
 
 
 class TestDataLoader:
-    
+
+    #test DataLoader.count 
     def test_count(self):
         #set start and endtimes
         starttime = datetime(year=2025,month=11,day=20)
@@ -32,5 +33,5 @@ class TestDataLoader:
         params = RP(starttime=start, endtime=end, minmagnitude=5)
         #validate params
         assert params.validate()
-
-        assert DataLoader.count(params) == 6
+        dl = DataLoader(params) 
+        assert dl.count() == 6
