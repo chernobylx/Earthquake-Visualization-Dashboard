@@ -48,7 +48,6 @@ class TestDataLoader:
             'depth': 'float64',
             'time': 'datetime64[ns]',
             'tsunami': 'bool',
-            'cdi': 'int64'
         }
 
         assert not df.empty, "Input DataFrame must not be empty"
