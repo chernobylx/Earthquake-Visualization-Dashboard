@@ -1,3 +1,4 @@
+import pandas as pd
 from io import StringIO
 import requests
 import json
@@ -115,7 +116,7 @@ class DataLoader:
         self.gdf['lon'] = self.gdf.geometry.x
         self.gdf['lat'] = self.gdf.geometry.y
         self.gdf['depth'] = self.gdf.geometry.z
-        self.gdf.rename(['magnitude': 'mag', 'significance': 'sig'], inplace=True)
-        self.gdf['time'] = gpd.to_datetime(self.gdf['time'])
+        self.gdf.rename({'magnitude': 'mag', 'significance': 'sig'}, inplace=True)
+        self.gdf['time'] = pd.to_datetime(self.gdf['time'])
         return self.gdf
 
