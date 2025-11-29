@@ -128,7 +128,7 @@ class DataLoader:
         self.gdf['depth'] = self.gdf.geometry.z
         self.gdf.rename({'magnitude': 'mag', 'significance': 'sig'}, inplace=True)
         self.gdf['sig'] = self.gdf['sig'].astype(int)
-        self.gdf['time'] = pd.to_datetime(self.gdf['time'])
+        self.gdf['time'] = pd.to_datetime(self.gdf['time'], unit = 'ms')
         self.gdf['tsunami'] = self.gdf['tsunami'].astype(bool)
         return self.gdf[COL_TYPES.keys()]
 
