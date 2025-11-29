@@ -119,5 +119,6 @@ class DataLoader:
         self.gdf.rename({'magnitude': 'mag', 'significance': 'sig'}, inplace=True)
         self.gdf['sig'] = self.gdf['sig'].astype(int)
         self.gdf['time'] = pd.to_datetime(self.gdf['time'])
+        self.gdf['tsunami'] = self.gdf['tsunami'].astype(bool)
         return self.gdf
 
