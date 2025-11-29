@@ -1,3 +1,4 @@
+import pandas as pd
 from io import StringIO
 import requests
 import json
@@ -9,6 +10,16 @@ from typing import Optional
 #Datetime format for the project
 DT_FORMAT = "%y-%m-%d %H:%M:%S"
 
+#columns and their types expected by the datavisuzlizer
+COL_TYPES = {
+            'lat': 'float64',
+            'lon': 'float64',
+            'mag': 'float64',
+            'sig': 'int64',
+            'depth': 'float64',
+            'time': 'datetime64[ns, UTC]',
+            'tsunami': 'bool',
+}
 #A custom error class for validating GeoJSONRequestParams
 class InvalidParamError(Exception):
     def __init__(self, message: str):
@@ -110,3 +121,14 @@ class DataLoader:
         else:
             self.gdf = gpd.read_file(StringIO(self.response.text))
             return self.gdf
+    
+    def preprocess(self):
+        self.gdf['lon'] = self.gdf.geometry.x
+        self.gdf['lat'] = self.gdf.geometry.y
+        self.gdf['depth'] = self.gdf.geometry.z
+        self.gdf.rename({'magnitude': 'mag', 'significance': 'sig'}, inplace=True)
+        self.gdf['sig'] = self.gdf['sig'].astype(int)
+        self.gdf['time'] = pd.to_datetime(self.gdf['time'], unit = 'ms', utc = True)
+        self.gdf['tsunami'] = self.gdf['tsunami'].astype(bool)
+        return self.gdf[COL_TYPES.keys()]
+
