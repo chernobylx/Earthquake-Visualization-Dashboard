@@ -2,6 +2,7 @@ from DataLoader import RequestParams as RP
 from DataLoader import InvalidParamError, DT_FORMAT, DataLoader
 from datetime import datetime, timedelta
 from pytest import raises
+
 starttime = datetime(year=2025,month=11,day=20)
 endtime = datetime(year=2025,month=11,day=21)
 #convert them to strings
@@ -9,6 +10,17 @@ start = datetime.strftime(starttime, DT_FORMAT)
 end = datetime.strftime(endtime, DT_FORMAT)
 #construct params
 TEST_PARAMS = RP(starttime=start, endtime=end, minmagnitude=5)
+
+COL_TYPES = {
+            'lat': 'float64',
+            'lon': 'float64',
+            'mag': 'float64',
+            'sig': 'int64',
+            'depth': 'float64',
+            'time': 'datetime64[ns]',
+            'tsunami': 'bool',
+        }
+
 class TestRequestParams:
     invalid_format_params: RP = RP(format='goojson')
     invalid_date_params: RP = RP(starttime=datetime.strftime(datetime(year=2025,month=1,day=1), DT_FORMAT), 
@@ -40,20 +52,11 @@ class TestDataLoader:
         dl = DataLoader(TEST_PARAMS)
         dl.query()
         df = dl.preprocess()
-        col_types = {
-            'lat': 'float64',
-            'lon': 'float64',
-            'mag': 'float64',
-            'sig': 'int64',
-            'depth': 'float64',
-            'time': 'datetime64[ns]',
-            'tsunami': 'bool',
-        }
-
+        
         assert not df.empty, "Input DataFrame must not be empty"
-        for col in col_types.keys():
+        for col in COL_TYPES.keys():
             assert col in df.columns, f"DataFrame must contain '{col}' column"
         
         
-        for col, expected_type in col_types.items():
+        for col, expected_type in COL_TYPES.items():
             assert df[col].dtype == expected_type, f"Column '{col}' must be of type {expected_type}"
