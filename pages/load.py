@@ -1,7 +1,7 @@
 import dash
 from dash import html, dcc, callback, Input, Output, State
-from datetime import date, timedelta
-from DataLoader import DataLoader, RequestParams
+from datetime import datetime, date, timedelta
+from DataLoader import DataLoader, RequestParams, DT_FORMAT
 
 dash.register_page(__name__)
 
@@ -25,4 +25,12 @@ layout = html.Div([
     Input('load_button', 'n_clicks')
 )
 def update_output(start_date, end_date, n_clicks):
-    return (start_date, end_date)
+    format = "%Y-%m-%d"
+    start_time = datetime.strptime(start_date, format)
+    start_time = datetime.strftime(start_time, DT_FORMAT)
+    end_time = datetime.strptime(end_date, format)
+    end_time = datetime.strftime(end_time, DT_FORMAT)
+    
+    params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=5)
+    dl = DataLoader(params)
+    return dl.count()
