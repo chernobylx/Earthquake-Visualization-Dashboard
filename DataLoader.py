@@ -117,6 +117,7 @@ class DataLoader:
         self.gdf['lat'] = self.gdf.geometry.y
         self.gdf['depth'] = self.gdf.geometry.z
         self.gdf.rename({'magnitude': 'mag', 'significance': 'sig'}, inplace=True)
+        self.gdf['sig'] = self.gdf['sig'].astype(int)
         self.gdf['time'] = pd.to_datetime(self.gdf['time'])
         return self.gdf
 
