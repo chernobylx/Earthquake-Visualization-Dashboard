@@ -1,3 +1,4 @@
+from io import StringIO
 import requests
 import json
 import geopandas as gpd
@@ -80,7 +81,6 @@ class DataLoader:
     url: str = 'https://earthquake.usgs.gov/fdsnws/event/1/'
     count_url: str = url + 'count'
     query_url: str = url + 'query'
-
     def __init__(self, params: RequestParams) -> None:
         assert params.validate()
         self.params = params
@@ -97,3 +97,16 @@ class DataLoader:
         else:
             self.body = json.loads(self.response.text)
             return self.body['count']
+    
+    def query(self)->gpd.GeoDataFrame:
+        try: 
+            COUNT = self.count()
+            assert COUNT <= 20000, "Queries cannot exceed 20,000 records"
+            self.response = requests.get(self.query_url, self.params.__dict__)
+            if self.response.status_code != 200:
+                raise Exception(f"HTTP Request Error: {self.response.status_code}")
+        except Exception as e:
+            raise Exception(str(e))
+        else:
+            self.gdf = gpd.read_file(StringIO(json.loads(self.response.text)))
+            return self.gdf
