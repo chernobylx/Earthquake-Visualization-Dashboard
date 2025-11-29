@@ -1,5 +1,5 @@
 from DataLoader import RequestParams as RP
-from DataLoader import InvalidParamError, DT_FORMAT, DataLoader
+from DataLoader import InvalidParamError, DT_FORMAT, DataLoader, COL_TYPES
 from datetime import datetime, timedelta
 from pytest import raises
 
@@ -11,15 +11,7 @@ end = datetime.strftime(endtime, DT_FORMAT)
 #construct params
 TEST_PARAMS = RP(starttime=start, endtime=end, minmagnitude=5)
 
-COL_TYPES = {
-            'lat': 'float64',
-            'lon': 'float64',
-            'mag': 'float64',
-            'sig': 'int64',
-            'depth': 'float64',
-            'time': 'datetime64[ns]',
-            'tsunami': 'bool',
-        }
+
 
 class TestRequestParams:
     invalid_format_params: RP = RP(format='goojson')

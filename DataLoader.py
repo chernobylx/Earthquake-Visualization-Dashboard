@@ -10,6 +10,16 @@ from typing import Optional
 #Datetime format for the project
 DT_FORMAT = "%y-%m-%d %H:%M:%S"
 
+#columns and their types expected by the datavisuzlizer
+COL_TYPES = {
+            'lat': 'float64',
+            'lon': 'float64',
+            'mag': 'float64',
+            'sig': 'int64',
+            'depth': 'float64',
+            'time': 'datetime64[ns]',
+            'tsunami': 'bool',
+}
 #A custom error class for validating GeoJSONRequestParams
 class InvalidParamError(Exception):
     def __init__(self, message: str):
@@ -120,5 +130,5 @@ class DataLoader:
         self.gdf['sig'] = self.gdf['sig'].astype(int)
         self.gdf['time'] = pd.to_datetime(self.gdf['time'])
         self.gdf['tsunami'] = self.gdf['tsunami'].astype(bool)
-        return self.gdf
+        return self.gdf[COL_TYPES.keys()]
 
