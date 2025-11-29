@@ -4,6 +4,8 @@ from typing import Union
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
+#Datetime format for the project
+DT_FORMAT = "%y-%m-%d %H:%M:%S"
 
 #A custom error class for validating GeoJSONRequestParams
 class InvalidParamError(Exception):
@@ -12,7 +14,6 @@ class InvalidParamError(Exception):
         self.message = message
         super().__init__(self.message)
 
-DT_FORMAT = "%y-%m-%d %H:%M:%S"
 @dataclass 
 class RequestParams:
     #a dataclass for storing geojson api request params for the usgs api at https://earthquake.usgs.gov/fdsnws/event/1/
