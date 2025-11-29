@@ -110,3 +110,12 @@ class DataLoader:
         else:
             self.gdf = gpd.read_file(StringIO(self.response.text))
             return self.gdf
+    
+    def preprocess(self):
+        self.gdf['lon'] = self.gdf.geometry.x
+        self.gdf['lat'] = self.gdf.geometry.y
+        self.gdf['depth'] = self.gdf.geometry.z
+        self.gdf.rename(['magnitude': 'mag', 'significance': 'sig'], inplace=True)
+        self.gdf['time'] = gpd.to_datetime(self.gdf['time'])
+        return self.gdf
+
