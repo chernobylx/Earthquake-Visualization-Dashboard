@@ -50,7 +50,7 @@ class TestDataLoader:
             'mag': 'float64',
             'sig': 'int64',
             'depth': 'float64',
-            'time': 'datetime64[ns, UTC]'
+            'time': 'datetime64[ns]'
         }
         for col, expected_type in col_types.items():
             assert df[col].dtype == expected_type, f"Column '{col}' must be of type {expected_type}"
