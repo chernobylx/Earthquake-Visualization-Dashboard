@@ -43,6 +43,8 @@ class TestDataLoader:
     
     def test_df(self):
         #test that the dataframe has the correct columns and datatypes required by the visualizer
+        dl = DataLoader(self.params)
+        df = dl.query()
         assert not df.empty, "Input DataFrame must not be empty"
         for col in ['lat', 'lon', 'mag', 'sig', 'depth', 'time']:
             assert col in df.columns, f"DataFrame must contain '{col}' column"
