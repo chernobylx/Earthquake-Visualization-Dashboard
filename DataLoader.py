@@ -108,5 +108,5 @@ class DataLoader:
         except Exception as e:
             raise Exception(str(e))
         else:
-            self.gdf = gpd.read_file(StringIO(json.loads(self.response.text)))
+            self.gdf = gpd.read_file(StringIO(self.response.text))
             return self.gdf
