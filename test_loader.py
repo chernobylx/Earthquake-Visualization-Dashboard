@@ -3,7 +3,7 @@ from DataLoader import InvalidParamError, DT_FORMAT, DataLoader
 from datetime import datetime, timedelta
 from pytest import raises
 
-
+TEST_PARAMS = RP(starttime = '2025-11-20', endtime = '2025-11-21', minmagnitude=5)
 class TestRequestParams:
     invalid_format_params: RP = RP(format='goojson')
     invalid_date_params: RP = RP(starttime=datetime.strftime(datetime(year=2025,month=1,day=1), DT_FORMAT), 
@@ -41,10 +41,12 @@ class TestDataLoader:
         dl = DataLoader(self.params) 
         assert len(dl.query()) == 6
     
-    def test_df(self):
+    def test_preprocess(self):
         #test that the dataframe has the correct columns and datatypes required by the visualizer
         dl = DataLoader(self.params)
-        df = dl.query()
+        dl.query()
+        dl.preprocess()
+
         assert not df.empty, "Input DataFrame must not be empty"
         for col in ['lat', 'lon', 'mag', 'sig', 'depth', 'time']:
             assert col in df.columns, f"DataFrame must contain '{col}' column"
