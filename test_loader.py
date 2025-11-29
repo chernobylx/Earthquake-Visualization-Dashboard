@@ -1,5 +1,5 @@
 from DataLoader import RequestParams as RP
-from DataLoader import InvalidParamError, DT_FORMAT
+from DataLoader import InvalidParamError, DT_FORMAT, DataLoader
 from datetime import datetime, timedelta
 from pytest import raises
 
@@ -19,3 +19,18 @@ class TestRequestParams:
         
 
 
+class TestDataLoader:
+    
+    def test_count(self):
+        #set start and endtimes
+        starttime = datetime(year=2025,month=11,day=20)
+        endtime = datetime(year=2025,month=11,day=21)
+        #convert them to strings
+        start = datetime.strftime(starttime, DT_FORMAT)
+        end = datetime.strftime(endtime, DT_FORMAT)
+        #construct params
+        params = RP(starttime=start, endtime=end, minmagnitude=5)
+        #validate params
+        assert params.validate()
+
+        assert DataLoader.count(params) == 6
