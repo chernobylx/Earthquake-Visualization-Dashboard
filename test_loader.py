@@ -29,17 +29,6 @@ class TestRequestParams:
 
 
 class TestDataLoader:
-    def __init__(self):
-        #set start and endtimes
-        self.starttime = datetime(year=2025,month=11,day=20)
-        self.endtime = datetime(year=2025,month=11,day=21)
-        #convert them to strings
-        self.start = datetime.strftime(starttime, DT_FORMAT)
-        self.end = datetime.strftime(endtime, DT_FORMAT)
-        #construct params
-        self.params = RP(starttime=start, endtime=end, minmagnitude=5)
-        self.params.validate()
-    
     #test DataLoader.count 
     def test_count(self): 
         dl = DataLoader(TEST_PARAMS) 
