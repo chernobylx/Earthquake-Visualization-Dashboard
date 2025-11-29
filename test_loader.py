@@ -2,8 +2,13 @@ from DataLoader import RequestParams as RP
 from DataLoader import InvalidParamError, DT_FORMAT, DataLoader
 from datetime import datetime, timedelta
 from pytest import raises
-
-TEST_PARAMS = RP(starttime = '2025-11-20', endtime = '2025-11-21', minmagnitude=5)
+starttime = datetime(year=2025,month=11,day=20)
+endtime = datetime(year=2025,month=11,day=21)
+#convert them to strings
+start = datetime.strftime(starttime, DT_FORMAT)
+end = datetime.strftime(endtime, DT_FORMAT)
+#construct params
+TEST_PARAMS = RP(starttime=start, endtime=end, minmagnitude=5)
 class TestRequestParams:
     invalid_format_params: RP = RP(format='goojson')
     invalid_date_params: RP = RP(starttime=datetime.strftime(datetime(year=2025,month=1,day=1), DT_FORMAT), 
@@ -20,30 +25,19 @@ class TestRequestParams:
 
 
 class TestDataLoader:
-    def __init__(self):
-        #set start and endtimes
-        self.starttime = datetime(year=2025,month=11,day=20)
-        self.endtime = datetime(year=2025,month=11,day=21)
-        #convert them to strings
-        self.start = datetime.strftime(starttime, DT_FORMAT)
-        self.end = datetime.strftime(endtime, DT_FORMAT)
-        #construct params
-        self.params = RP(starttime=start, endtime=end, minmagnitude=5)
-        self.params.validate()
-    
     #test DataLoader.count 
     def test_count(self): 
-        dl = DataLoader(self.params) 
+        dl = DataLoader(TEST_PARAMS) 
         assert dl.count() == 6
 
     #test DataLoader.query
     def test_query(self):
-        dl = DataLoader(self.params) 
+        dl = DataLoader(TEST_PARAMS) 
         assert len(dl.query()) == 6
     
     def test_preprocess(self):
         #test that the dataframe has the correct columns and datatypes required by the visualizer
-        dl = DataLoader(self.params)
+        dl = DataLoader(TEST_PARAMS)
         dl.query()
         dl.preprocess()
 
