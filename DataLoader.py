@@ -17,7 +17,7 @@ COL_TYPES = {
             'mag': 'float64',
             'sig': 'int64',
             'depth': 'float64',
-            'time': 'datetime64[ns]',
+            'time': 'datetime64[ns, UTC]',
             'tsunami': 'bool',
 }
 #A custom error class for validating GeoJSONRequestParams
@@ -128,7 +128,7 @@ class DataLoader:
         self.gdf['depth'] = self.gdf.geometry.z
         self.gdf.rename({'magnitude': 'mag', 'significance': 'sig'}, inplace=True)
         self.gdf['sig'] = self.gdf['sig'].astype(int)
-        self.gdf['time'] = pd.to_datetime(self.gdf['time'], unit = 'ms')
+        self.gdf['time'] = pd.to_datetime(self.gdf['time'], unit = 'ms', utc = True)
         self.gdf['tsunami'] = self.gdf['tsunami'].astype(bool)
         return self.gdf[COL_TYPES.keys()]
 
