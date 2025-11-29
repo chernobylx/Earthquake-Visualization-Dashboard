@@ -2,7 +2,7 @@ import requests
 import geopandas as gpd
 from typing import Union
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
 #A custom error class for validating GeoJSONRequestParams
@@ -12,15 +12,15 @@ class InvalidParamError(Exception):
         self.message = message
         super().__init__(self.message)
 
-
+DT_FORMAT = "%y-%m-%d %H:%M:%S"
 @dataclass 
 class RequestParams:
     #a dataclass for storing geojson api request params for the usgs api at https://earthquake.usgs.gov/fdsnws/event/1/
     format: str = 'geojson' #format must be geojson
 
     #starttime must be before endtime if both are specified
-    starttime: Optional[datetime] = datetime(year=2025, month=11, day=20)
-    endtime: Optional[datetime]= datetime(year=2025, month=11, day=27)
+    starttime: Optional[str] = datetime.strftime(datetime(year=2025, month=11, day=20), DT_FORMAT)
+    endtime: Optional[str]= datetime.strftime(datetime(year=2025, month=11, day=27), DT_FORMAT)
 
     #minmagnitude must be less than maxmagnitude if both are specified
     minmagnitude: Optional[float] = 6.0
@@ -56,7 +56,9 @@ class RequestParams:
             assert self.format == 'geojson', f'format must be "geojson" not "{self.format}"'
             
             if (self.starttime != None) and (self.endtime != None):
-                assert self.starttime < self.endtime, "starttime must be before endtime"
+                start = datetime.strptime(self.starttime, DT_FORMAT)
+                end = datetime.strptime(self.endtime, DT_FORMAT)
+                assert start < end, "starttime must be before endtime"
 
 
             #TODO: if min{param} and max{param} assert min{param} < max{param}
