@@ -140,6 +140,7 @@ layout = html.Div(children=[
 def build_page(input):
     layout = []
     layout.append(html.Div(['Data Loader'], id = 'loader', className='dashboard'))
+    layout.append(html.Div(['Visualizer'], id='visualizer', className='dashboard'))
     return layout
 
 @callback(
@@ -161,6 +162,28 @@ def build_loader_control_pannel(input):
     control_pannel.append(html.Div(['Date'], id = 'data_range', className='widget date-widget'))
     control_pannel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
     control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
+    for i in range(4,9):
+        control_pannel.append(html.Div([f'Widget{i}'], id=f'loader_widget{i}', className='widget'))
+    return control_pannel
+
+@callback(
+        Output('visualizer', 'children'),
+        Input('layout', 'children')
+)
+def build_visualizer(input):
+    visualizer = []
+    visualizer.append(html.Div(['Control Pannel'], id = 'visualizer_control_pannel', className='control-pannel'))
+    visualizer.append(html.Div(['Visualization'], id = 'visualization', className='dashboard-output visualization'))
+    return visualizer
+
+@callback(
+        Output('visualizer_control_pannel', 'children'),
+        Input('visualizer', 'children')
+)
+def build_visualizer_control_pannel(input):
+    control_pannel = []
+    for i in range(1,9):
+        control_pannel.append(html.Div([f'Widget{i}'], id=f'visualizer_widget{i}', className='widget'))
     return control_pannel
 
 @callback(

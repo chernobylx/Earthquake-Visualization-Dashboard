@@ -1,35 +1,54 @@
 #layout{
-    height:100vh;
+    background-color: rgb(15, 0, 33);
+    height: 100vh;
+    color: rgb(77, 229, 232);
+    font-family: monospace;
+    display: grid;
+    grid-template-columns: 1fr 4fr 4fr 1fr;
+    grid-template-rows: 1fr 9fr 1fr;
+    grid-template-areas:    '.  header  header  .'
+                            '.  loader  viz     .'
+                            '.  .       .       .';
+
+    row-gap: 10px;
+    column-gap: 10px;
+}
+.dashboard {
+    background-color: blueviolet;
+    display: grid;
+    grid-template-columns: 10px 1fr 10px;
+    grid-template-rows:  10px 1fr 1fr 10px;
+    row-gap: 10px;
+    grid-template-areas:    '.    .         .'
+                            '.    ctrl      .'
+                            '.    output    .'
+                            '.    .         .';
 }
 
-.dashboard{
-    height: 50%;
+#loader {
+    grid-area: loader;
 }
+
+#visualizer {
+    grid-area: viz;
+} 
 
 .control-pannel{
-    background-color: #00ffff;
-    width: 50%;
-    height: 50%;
-}
-.control-pannel:hover{
-    background-color: #0c5f5f;
-}
+    grid-area: ctrl;
+    background-color: rgb(128, 64, 231);
 
-.dashboard-output{
-    width: 50%;
-    height: 50%;
-    background-color: blueviolet;
-}
-.dashboard-output:hover{
-    background-color: #4c0a8a;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    column-gap: 5px;
+    row-gap: 5px;
 }
 
 .widget{
-    background-color: magenta;
+    background-color: green;
 }
-.widget:hover{
-    background-color: rgb(107, 14, 107);
-}
-.slider{
-    width: 100px;
+
+.dashboard-output{
+    grid-area: output;
+    background-color: rgb(206, 64, 241);
 }
