@@ -52,6 +52,7 @@ layout = html.Div([
 
         html.Div(
         [
+            'Click Count'
         ],
         id='count_div',
         )
@@ -93,19 +94,21 @@ def update_output(start_date, end_date,
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
+    Output('count_div', 'children', allow_duplicate=True),
     Input('clear_button', 'n_clicks'),
     prevent_initial_call=True,
     allow_duplicate = True
 )
 def clear_output(n_clicks):
-    return pd.DataFrame().to_dict('records')
+    return pd.DataFrame().to_dict('records'), 'Click Count'
 
 @callback(
-    Output('count_div', 'children'),
+    Output('count_div', 'children', allow_duplicate=True),
     State('date_range', 'start_date'),
     State('date_range', 'end_date'),
     State('mag_range', 'value'),
     Input('count_button', 'n_clicks'),
+    prevent_initial_call = True
 )
 def count_earthquakes(start_date, end_date,
                   magrange,
