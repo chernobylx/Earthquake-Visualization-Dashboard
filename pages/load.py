@@ -8,28 +8,30 @@ dash.register_page(__name__)
 layout = html.Div([
     html.Div([
         html.H2('Data Loader'),
-        dcc.DatePickerRange(
-            id = 'date_range',
-            min_date_allowed=date(1900,1,1),
-            max_date_allowed=date.today()+timedelta(days=1),
-            initial_visible_month=date.today()-timedelta(days=30),
-            start_date=date.today()-timedelta(days=30),
-            end_date=date.today()+timedelta(days=1)
-        ),
-        html.Div(
-            [
-                html.H3('Magnitude Range'),
-                dcc.RangeSlider(
-                    min=0,
-                    max=10,
-                    step=.1,
-                    value=[6,9.1],
-                    marks = None,
-                    tooltip = {"placement": "bottom", "always_visible": True},
-                    id = 'mag_range',
-                    className='slider'
-                )
-            ],
+        html.Div([
+            html.H3('Date Range'),
+            dcc.DatePickerRange(
+                id = 'date_range',
+                min_date_allowed=date(1900,1,1),
+                max_date_allowed=date.today()+timedelta(days=1),
+                initial_visible_month=date.today()-timedelta(days=30),
+                start_date=date.today()-timedelta(days=30),
+                end_date=date.today()+timedelta(days=1)
+            ),
+        ], className='control-pannel'),
+
+        html.Div([
+            html.H3('Magnitude Range'),
+            dcc.RangeSlider(
+                min=0,
+                max=10,
+                step=.1,
+                value=[6,9.1],
+                marks = None,
+                tooltip = {"placement": "bottom", "always_visible": True},
+                id = 'mag_range',
+                className='slider'
+            )],
             style = {'width': '200px'},
             id = 'mag-range',
             className='control-pannel'
