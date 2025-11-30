@@ -18,7 +18,7 @@ class DataVisualizer:
         #set internal dataframe
         self.df = df
 
-    def create_heatmap(self, filters, width, height, x_var='time', y_var='depth', color_var='max(magnitude)'):
+    def create_heatmap(self, filters, width, height, x_var='time', y_var='depth', color_var='max(mag)'):
         day = 24*60*60*1000
 
         if x_var == 'time':
@@ -87,7 +87,7 @@ class DataVisualizer:
                 x = x,
                 y = alt.Y('count()', title = var[:4]),
                 color = alt.condition(selectors[var],
-                                    alt.Color('magnitude:Q',
+                                    alt.Color('mag:Q',
                                             scale = alt.Scale(scheme = color_scheme)),
                                     alt.value('lightgrey')),
                 order = alt.Order(var+type, sort='ascending')
@@ -118,10 +118,10 @@ class DataVisualizer:
     def create_chart(self, width=1200, height=800,
                      projection ='equalEarth', phi = 0, theta = 0, scale = 100,
                      map_fill = 'darkgrey', map_stroke = 'lightgrey',
-                     color_var = 'significance', color_scheme = 'magma',
-                     opacity_var = 'magnitude',
-                     size_var = 'magnitude', size_range = [10, 200],
-                     filter_vars = ['time', 'magnitude', 'significance', 'depth', 'longitude', 'latitude'],
+                     color_var = 'sig', color_scheme = 'magma',
+                     opacity_var = 'mag',
+                     size_var = 'mag', size_range = [10, 200],
+                     filter_vars = ['time', 'mag', 'sig', 'depth', 'lon', 'lat'],
                      heatmap_x = 'time',
                      heatmap_y = 'depth'):
         map_width = .6 * width
@@ -172,8 +172,8 @@ class DataVisualizer:
 
         brush = alt.selection_interval(name = "brush")
         quakes = alt.Chart(self.df).mark_circle().encode(
-            longitude = 'longitude:Q',
-            latitude = 'latitude:Q',
+            longitude = 'lon:Q',
+            latitude = 'lat:Q',
             size = Size,
             opacity= Opacity,
             color = alt.condition(brush,
@@ -181,8 +181,8 @@ class DataVisualizer:
                                 alt.value('lightgrey')),
             order = alt.Order('time:T', sort='ascending'),
             tooltip = [
-                alt.Tooltip('location:N', title='Location'),
-                alt.Tooltip('magnitude:Q', title='Magnitude'),
+                alt.Tooltip('place:N', title='Location'),
+                alt.Tooltip('mag:Q', title='Magnitude'),
                 alt.Tooltip('depth:Q', title='Depth (km)'),
                 alt.Tooltip('time:T', title='Time')
             ]
@@ -201,7 +201,7 @@ class DataVisualizer:
                                  y_var = heatmap_y,
                                  width = heatmap__width,
                                  height = heatmap_height,
-                                 color_var = 'max(magnitude)')
+                                 color_var = 'max(mag)')
 
         earth+=quakes
 
