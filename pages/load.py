@@ -75,7 +75,20 @@ layout = html.Div([
     html.Div(
     [
         html.H2('Visualizer'),
-
+        html.Div(
+        [
+            html.Div(
+            [
+                html.H3('Projection:'),
+                dcc.Dropdown(
+                    ['equalEarth', 'mercator', 'azimuthalEqualArea'], 
+                    value = 'equalEarth', 
+                    id = 'projection_dd'
+                )
+            ], id = 'projection_widget', className = 'widget'
+            ),
+        ], id = 'viz_control_pannel', className='control-pannel'
+        ),
         html.Div([],
                  id = 'visualizer_output')
     ],
@@ -144,14 +157,19 @@ def count_earthquakes(start_date, end_date,
 @callback(
     Output('visualizer_output', 'children'),
     State('data_table', 'derived_virtual_data'),
+    State('projection_dd', 'value'),
     Input('viz_button', 'n_clicks'),
     prevent_initial_call = True
 )
-def update_visualizer(data, n_clicks):
+def update_visualizer(data,
+                      projection,
+                      n_clicks):
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True)
     dv = DataVisualizer(df)
-    spec = dv.create_chart().to_dict()
+    spec = dv.create_chart(
+        projection=projection
+    ).to_dict()
     return dvc.Vega(
         id='map',
         opt={"renderer": 'svg', 'actions': False},
