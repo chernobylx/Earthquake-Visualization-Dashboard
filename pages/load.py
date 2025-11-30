@@ -1,8 +1,8 @@
 import dash
-from dash import html, dcc, callback, Input, Output, State
+from dash import html, dcc, callback, Input, Output, State, dash_table
 from datetime import datetime, date, timedelta
 from DataLoader import DataLoader, RequestParams, DT_FORMAT
-
+import pandas as pd
 dash.register_page(__name__)
 
 layout = html.Div([
@@ -33,11 +33,11 @@ layout = html.Div([
             html.Button('Clear', id='clear_button', n_clicks = 0)
         ]
     ),
-    html.Div(id='output_div')
+    dash_table.DataTable(id = 'data_table')
 ])
 
 @callback(
-    Output('output_div', 'children', allow_duplicate=True),
+    Output('data_table', 'data', allow_duplicate=True),
     State('date_range', 'start_date'),
     State('date_range', 'end_date'),
     State('mag_range', 'value'),
@@ -55,14 +55,14 @@ def update_output(start_date, end_date,
 
     params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
     dl = DataLoader(params)
-    count = dl.count()
-    return count, str(dl.response), str(params)
+    dl.query()
+    return dl.preprocess().to_dict('records')
 
 @callback(
-    Output('output_div', 'children', allow_duplicate=True),
+    Output('data_table', 'data', allow_duplicate=True),
     Input('clear_button', 'n_clicks'),
     prevent_initial_call=True,
     allow_duplicate = True
 )
 def clear_output(n_clicks):
-    return None
+    return pd.DataFrame().to_dict('records')
