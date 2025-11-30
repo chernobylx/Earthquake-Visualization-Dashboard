@@ -99,7 +99,12 @@ class DataVisualizer:
                 )
         return hists, selectors
 
-    def create_map(self, map_fill, map_stroke, map_width, map_height, Projection):
+    def create_map(self, 
+                   map_fill: str = 'red', 
+                   map_stroke: str = 'blue', 
+                   map_width: int = 800, 
+                   map_height: int = 600, 
+                   Projection = alt.Projection(type = 'equalEarth')):
         topo = alt.topo_feature(data.world_110m.url, 'countries')
         earth = alt.Chart(topo).mark_geoshape(
             fill = map_fill,
@@ -181,7 +186,7 @@ class DataVisualizer:
                                 alt.value('lightgrey')),
             order = alt.Order('time:T', sort='ascending'),
             tooltip = [
-                alt.Tooltip('place:N', title='Location'),
+                alt.Tooltip('location:N', title='Location'),
                 alt.Tooltip('mag:Q', title='Magnitude'),
                 alt.Tooltip('depth:Q', title='Depth (km)'),
                 alt.Tooltip('time:T', title='Time')
