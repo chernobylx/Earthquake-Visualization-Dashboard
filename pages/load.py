@@ -128,25 +128,30 @@ layout = html.Div([
     ),
 
 ])
+layout = html.Div(children=[
+    html.Div(['Hidden Div'], id='hidden_div', style={'display': 'none'}),
+    html.Div(children=['Page'], id='layout')
+])
 
-layout = html.Div(children = [], id = 'layout')
 @callback(
-        Output('layout', 'children')
+        Output('layout', 'children'),
+        Input('hidden_div', 'children')
 )
-def build_page():
+def build_page(input):
     layout = []
-    layout.append(html.Div([], id = 'loader', className='dashboard'))
+    layout.append(html.Div(['Data Loader'], id = 'loader', className='dashboard'))
     return layout
 
 @callback(
         Output('loader', 'children'),
         Input('layout', 'children')
 )
-def build_loader():
+def build_loader(input):
     loader = []
-    loader.append(html.Div([], id = 'loader_control_pannel', className='control-pannel'))
-    loader.append(html.Div([], id = 'data_table', className='dashboard-output data-table'))
-    
+    loader.append(html.Div(['Control Pannel'], id = 'loader_control_pannel', className='control-pannel'))
+    loader.append(html.Div(['Data Table'], id = 'data_table', className='dashboard-output data-table'))
+    return loader
+
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
     Output('data_table', 'columns'),

@@ -1,10 +1,26 @@
+#layout{
+    height:100vh;
+}
+
+.dashboard{
+    height: 50%;
+}
+
+.control-pannel{
+    background-color: aqua;
+    width: 50%;
+    height: 50%;
+}
+
+.dashboard-output{
+    width: 50%;
+    height: 50%;
+    background-color: blueviolet;
+}
+
 .widget{
     background-color: blueviolet;
 }
-.control-pannel{
-    background-color: aqua;
-}
-
 .slider{
     width: 100px;
 }
