@@ -11,13 +11,13 @@ from typing import Optional
 DT_FORMAT = "%y-%m-%d %H:%M:%S"
 
 #columns and their types expected by the datavisuzlizer
-COL_TYPES = {
+COL_TYPES = {'place': 'object',
+            'time': 'datetime64[ns, UTC]',
             'lat': 'float64',
             'lon': 'float64',
             'mag': 'float64',
             'sig': 'int64',
             'depth': 'float64',
-            'time': 'datetime64[ns, UTC]',
             'tsunami': 'bool',
 }
 #A custom error class for validating GeoJSONRequestParams
