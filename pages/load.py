@@ -36,7 +36,6 @@ layout = html.Div([
                 className='slider'
             )
         ],
-            style = {'width': '200px'},
             id = 'mag-range',
             className='widget'
         ),
