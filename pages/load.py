@@ -12,6 +12,7 @@ layout = html.Div([
         min_date_allowed=date(1900,1,1),
         max_date_allowed=date.today()+timedelta(days=1),
         initial_visible_month=date.today()-timedelta(days=30),
+        start_date=date.today()-timedelta(days=30),
         end_date=date.today()+timedelta(days=1)
     ),
     html.Div(
