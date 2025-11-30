@@ -19,7 +19,7 @@ COL_TYPES = {'place': 'object',
             'sig': 'int64',
             'depth': 'float64',
             'tsunami': 'bool',
-            'cdi': 'int64',
+            'cdi': 'float64',
             'alert': 'object',
 }
 #A custom error class for validating GeoJSONRequestParams

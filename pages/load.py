@@ -138,8 +138,10 @@ def count_earthquakes(start_date, end_date,
 @callback(
     Output('visualizer_output', 'children'),
     Input('data_table', 'derived_virtual_data'),
+    prevent_initial_call = True
 )
 def update_visualizer(data):
     df = pd.DataFrame(data)
+    df['time'] = pd.to_datetime(df['time'], utc=True)
     dv = DataVisualizer(df)
-    return len(dv.df)
+    return str(dv.df.dtypes)

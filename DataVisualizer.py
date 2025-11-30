@@ -9,7 +9,7 @@ class DataVisualizer:
     def __init__(self, df: pd.DataFrame):
         assert isinstance(df, pd.DataFrame), "Input must be a pandas DataFrame"
         assert not df.empty, "Input DataFrame must not be empty"
-        for col in ['lat', 'lon', 'mag', 'sig', 'depth', 'time']:
+        for col in COL_TYPES.keys():
             assert col in df.columns, f"DataFrame must contain '{col}' column"
         
         
