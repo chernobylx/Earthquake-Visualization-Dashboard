@@ -68,7 +68,6 @@ layout = html.Div([
             page_size=10,
             filter_action = 'native',
             sort_action = 'native'),
-        html.Button('Visualize', id = 'viz_button', n_clicks = 0)
     ], id = 'data_table_div'
     ),
 
@@ -87,6 +86,8 @@ layout = html.Div([
                 )
             ], id = 'projection_widget', className = 'widget'
             ),
+            
+            html.Button('Visualize', id = 'viz_button', n_clicks = 0),
         ], id = 'viz_control_pannel', className='control-pannel'
         ),
         html.Div([],
