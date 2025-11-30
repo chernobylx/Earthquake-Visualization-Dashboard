@@ -33,18 +33,23 @@ layout = html.Div([
             html.Button('Clear', id='clear_button', n_clicks = 0)
         ]
     ),
-    dash_table.DataTable(id = 'data_table')
+    dash_table.DataTable(
+        id = 'data_table',
+        page_size=10,
+        filter_action = 'native',
+        sort_action = 'native')
 ])
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
+    Output('data_table', 'columns'),
     State('date_range', 'start_date'),
     State('date_range', 'end_date'),
     State('mag_range', 'value'),
     Input('load_button', 'n_clicks'),
     prevent_initial_call=True,
 )
-def update_output(start_date, end_date, 
+def update_output(start_date, end_date,
                   magrange,
                   n_clicks):
     format = "%Y-%m-%d"
@@ -56,7 +61,9 @@ def update_output(start_date, end_date,
     params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
     dl = DataLoader(params)
     dl.query()
-    return dl.preprocess().to_dict('records')
+    df = dl.preprocess()
+    columns = [{"name": col, "id": col} for col in df.columns]
+    return df.to_dict('records'), columns
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
