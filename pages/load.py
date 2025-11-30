@@ -74,8 +74,10 @@ layout = html.Div([
     html.Div(
     [
         html.H2('Visualizer'),
+        #Visualizer Control Pannel
         html.Div(
         [
+            #Projection Widget
             html.Div(
             [
                 html.H3('Projection:'),
@@ -86,7 +88,36 @@ layout = html.Div([
                 )
             ], id = 'projection_widget', className = 'widget'
             ),
-            
+            #Map Control Widget
+            html.Div(
+            [
+                html.H3('Map Controls:'),
+                html.Div(
+                [
+                    html.H4('Rotate:'),
+                    html.H5('Y:'),
+                    dcc.Slider(min = -179.9,
+                               max = 179.9,
+                               step=10,
+                               value=0,
+                               marks = None,
+                               tooltip = {"placement": "bottom", "always_visible": True},
+                               id = 'phi',
+                               className='slider'),
+                    html.H5('X:'),
+                    dcc.Slider(min = -89.9,
+                               max = 89.9,
+                               step=10,
+                               value=0,
+                               marks = None,
+                               tooltip = {"placement": "bottom", "always_visible": True},
+                               id = 'theta',
+                               className='slider')
+                ]
+                ) 
+            ], id = 'map_control_widget', className = 'widget'
+            ),
+
             html.Button('Visualize', id = 'viz_button', n_clicks = 0),
         ], id = 'viz_control_pannel', className='control-pannel'
         ),
@@ -97,6 +128,8 @@ layout = html.Div([
     ),
 
 ])
+
+layout = html.Div(children = [], id = 'layout')
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
