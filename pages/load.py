@@ -1,4 +1,5 @@
 import dash
+import dash_vega_components as dvc
 from dash import html, dcc, callback, Input, Output, State, dash_table
 from datetime import datetime, date, timedelta
 from DataLoader import DataLoader, RequestParams, DT_FORMAT
@@ -150,4 +151,10 @@ def update_visualizer(data, n_clicks):
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True)
     dv = DataVisualizer(df)
-    return dv.create_chart()
+    spec = dv.create_chart().to_dict()
+    return dvc.Vega(
+        id='map',
+        signalsToObserve=['brush'],
+        opt={"renderer": 'svg', 'actions': False},
+        spec=spec
+    )
