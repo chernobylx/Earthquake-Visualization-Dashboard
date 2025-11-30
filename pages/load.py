@@ -6,9 +6,11 @@ import pandas as pd
 dash.register_page(__name__)
 
 layout = html.Div([
-    html.Div([
+    html.Div(
+    [
         html.H2('Data Loader'),
-        html.Div([
+        html.Div(
+        [
             html.H3('Date Range'),
             dcc.DatePickerRange(
                 id = 'date_range',
@@ -18,9 +20,10 @@ layout = html.Div([
                 start_date=date.today()-timedelta(days=30),
                 end_date=date.today()+timedelta(days=1)
             ),
-        ], className='control-pannel'),
+        ], className='widget'),
 
-        html.Div([
+        html.Div(
+        [
             html.H3('Magnitude Range'),
             dcc.RangeSlider(
                 min=0,
@@ -31,20 +34,23 @@ layout = html.Div([
                 tooltip = {"placement": "bottom", "always_visible": True},
                 id = 'mag_range',
                 className='slider'
-            )],
+            )
+        ],
             style = {'width': '200px'},
             id = 'mag-range',
-            className='control-pannel'
+            className='widget'
         ),
+
         html.Div(
-            [
-                html.Button('Load', id='load_button', n_clicks = 0),
-                html.Button('Clear', id='clear_button', n_clicks = 0)
-            ],
-            id = 'buttons',
-            className = 'control-pannel'
+        [
+            html.Button('Load', id='load_button', n_clicks = 0),
+            html.Button('Clear', id='clear_button', n_clicks = 0)
+        ],
+        id = 'buttons',
+        className = 'widget'
         )
-    ], id = 'data-loader'),
+    ],
+        id = 'data-loader', className='control-pannel'),
 
     dash_table.DataTable(
         id = 'data_table',
