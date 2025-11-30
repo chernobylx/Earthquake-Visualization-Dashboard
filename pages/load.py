@@ -2,6 +2,7 @@ import dash
 from dash import html, dcc, callback, Input, Output, State, dash_table
 from datetime import datetime, date, timedelta
 from DataLoader import DataLoader, RequestParams, DT_FORMAT
+from DataVisualizer import DataVisualizer
 import pandas as pd
 dash.register_page(__name__)
 
@@ -140,4 +141,5 @@ def count_earthquakes(start_date, end_date,
 )
 def update_visualizer(data):
     df = pd.DataFrame(data)
-    return len(df)
+    dv = DataVisualizer(df)
+    return len(dv.df)
