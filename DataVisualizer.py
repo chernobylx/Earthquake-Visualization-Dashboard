@@ -75,7 +75,6 @@ class DataVisualizer:
                 x = alt.X('time:T',
                         timeUnit = 'year',
                         axis = alt.Axis(format = '%Y'),
-                        bin=True,
                         title = None)
                 type = ':T'
 

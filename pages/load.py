@@ -151,7 +151,7 @@ def update_visualizer(data, n_clicks):
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True)
     dv = DataVisualizer(df)
-    spec = dv.create_map().to_dict()
+    spec = dv.create_chart().to_dict()
     return dvc.Vega(
         id='map',
         opt={"renderer": 'svg', 'actions': False},
