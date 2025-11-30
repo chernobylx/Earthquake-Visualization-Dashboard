@@ -130,7 +130,23 @@ layout = html.Div([
 ])
 
 layout = html.Div(children = [], id = 'layout')
+@callback(
+        Output('layout', 'children')
+)
+def build_page():
+    layout = []
+    layout.append(html.Div([], id = 'loader', className='dashboard'))
+    return layout
 
+@callback(
+        Output('loader', 'children'),
+        Input('layout', 'children')
+)
+def build_loader():
+    loader = []
+    loader.append(html.Div([], id = 'loader_control_pannel', className='control-pannel'))
+    loader.append(html.Div([], id = 'data_table', className='dashboard-output data-table'))
+    
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
     Output('data_table', 'columns'),
