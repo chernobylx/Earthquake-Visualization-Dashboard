@@ -2,6 +2,7 @@ import pandas as pd
 import geopandas as gpd
 import altair as alt
 from vega_datasets import data
+from DataLoader import COL_TYPES
 
 
 class DataVisualizer:
@@ -11,15 +12,8 @@ class DataVisualizer:
         for col in ['lat', 'lon', 'mag', 'sig', 'depth', 'time']:
             assert col in df.columns, f"DataFrame must contain '{col}' column"
         
-        col_types = {
-            'lat': 'float64',
-            'lon': 'float64',
-            'mag': 'float64',
-            'sig': 'int64',
-            'depth': 'float64',
-            'time': 'datetime64[ns, UTC]'
-        }
-        for col, expected_type in col_types.items():
+        
+        for col, expected_type in COL_TYPES.items():
             assert df[col].dtype == expected_type, f"Column '{col}' must be of type {expected_type}"
         #set internal dataframe
         self.df = df
