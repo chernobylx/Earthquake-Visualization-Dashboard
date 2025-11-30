@@ -64,7 +64,17 @@ layout = html.Div([
         id = 'data_table',
         page_size=10,
         filter_action = 'native',
-        sort_action = 'native')
+        sort_action = 'native'),
+
+    html.Div(
+    [
+        html.H2('Visualizer'),
+
+        html.Div([],
+                 id = 'visualizer_output')
+    ],
+    id = 'visualizer_div'
+    )
 ])
 
 @callback(
@@ -122,3 +132,12 @@ def count_earthquakes(start_date, end_date,
     params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
     dl = DataLoader(params)
     return f'Found {dl.count()} earthquakes' 
+
+
+@callback(
+    Output('visualizer_output', 'children'),
+    Input('data_table', 'derived_virtual_data'),
+)
+def update_visualizer(data):
+    df = pd.DataFrame(data)
+    return len(df)
