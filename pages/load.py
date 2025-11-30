@@ -42,14 +42,22 @@ layout = html.Div([
 
         html.Div(
         [
+            html.Button('Count', id='count_button', n_clicks =0),
             html.Button('Load', id='load_button', n_clicks = 0),
             html.Button('Clear', id='clear_button', n_clicks = 0)
         ],
         id = 'buttons',
         className = 'widget'
+        ),
+
+        html.Div(
+        [
+        ],
+        id='count_div',
         )
+
     ],
-        id = 'data-loader', className='control-pannel'),
+    id = 'data-loader', className='control-pannel'),
 
     dash_table.DataTable(
         id = 'data_table',
@@ -91,3 +99,23 @@ def update_output(start_date, end_date,
 )
 def clear_output(n_clicks):
     return pd.DataFrame().to_dict('records')
+
+@callback(
+    Output('count_div', 'children'),
+    State('date_range', 'start_date'),
+    State('date_range', 'end_date'),
+    State('mag_range', 'value'),
+    Input('count_button', 'n_clicks'),
+)
+def count_earthquakes(start_date, end_date,
+                  magrange,
+                  n_clicks):
+    format = "%Y-%m-%d"
+    start_time = datetime.strptime(start_date, format)
+    start_time = datetime.strftime(start_time, DT_FORMAT)
+    end_time = datetime.strptime(end_date, format)
+    end_time = datetime.strftime(end_time, DT_FORMAT)
+
+    params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
+    dl = DataLoader(params)
+    return f'Found {dl.count()} earthquakes' 
