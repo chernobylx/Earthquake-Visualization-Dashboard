@@ -60,12 +60,16 @@ layout = html.Div([
 
     ],
     id = 'data-loader', className='control-pannel'),
-
-    dash_table.DataTable(
-        id = 'data_table',
-        page_size=10,
-        filter_action = 'native',
-        sort_action = 'native'),
+    html.Div(
+    [
+        dash_table.DataTable(
+            id = 'data_table',
+            page_size=10,
+            filter_action = 'native',
+            sort_action = 'native'),
+        html.Button('Visualize', id = 'viz_button', n_clicks = 0)
+    ], id = 'data_table_div'
+    ),
 
     html.Div(
     [
@@ -137,10 +141,11 @@ def count_earthquakes(start_date, end_date,
 
 @callback(
     Output('visualizer_output', 'children'),
-    Input('data_table', 'derived_virtual_data'),
+    State('data_table', 'derived_virtual_data'),
+    Input('viz_button', 'n_clicks'),
     prevent_initial_call = True
 )
-def update_visualizer(data):
+def update_visualizer(data, n_clicks):
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True)
     dv = DataVisualizer(df)
