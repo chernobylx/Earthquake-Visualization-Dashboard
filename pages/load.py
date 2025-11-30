@@ -79,7 +79,8 @@ layout = html.Div([
                  id = 'visualizer_output')
     ],
     id = 'visualizer_div'
-    )
+    ),
+
 ])
 
 @callback(
@@ -149,4 +150,4 @@ def update_visualizer(data, n_clicks):
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True)
     dv = DataVisualizer(df)
-    return str(dv.df.dtypes)
+    return dv.create_chart()
