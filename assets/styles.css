@@ -7,9 +7,12 @@
 }
 
 .control-pannel{
-    background-color: aqua;
+    background-color: #00ffff;
     width: 50%;
     height: 50%;
+}
+.control-pannel:hover{
+    background-color: #0c5f5f;
 }
 
 .dashboard-output{
@@ -17,9 +20,15 @@
     height: 50%;
     background-color: blueviolet;
 }
+.dashboard-output:hover{
+    background-color: #4c0a8a;
+}
 
 .widget{
-    background-color: blueviolet;
+    background-color: magenta;
+}
+.widget:hover{
+    background-color: rgb(107, 14, 107);
 }
 .slider{
     width: 100px;

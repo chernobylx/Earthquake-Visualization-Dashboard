@@ -158,9 +158,10 @@ def build_loader(input):
 )
 def build_loader_control_pannel(input):
     control_pannel = []
-    control_pannel.append(html.Div([], id = 'data_range', className='widget date-widget'))
-    control_pannel.append(html.Div([], id='mag_range', className='widget slider-widget'))
-    control_pannel.append(html.Div([], id='loader_button_widget', className='widget button-widget'))
+    control_pannel.append(html.Div(['Date'], id = 'data_range', className='widget date-widget'))
+    control_pannel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
+    control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
+    return control_pannel
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
