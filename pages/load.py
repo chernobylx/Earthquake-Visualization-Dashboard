@@ -53,9 +53,10 @@ def update_output(start_date, end_date,
     end_time = datetime.strptime(end_date, format)
     end_time = datetime.strftime(end_time, DT_FORMAT)
 
-    params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=5)
+    params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
     dl = DataLoader(params)
-    return dl.count()
+    count = dl.count()
+    return count, str(dl.response), str(params)
 
 @callback(
     Output('output_div', 'children', allow_duplicate=True),
