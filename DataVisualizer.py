@@ -186,7 +186,7 @@ class DataVisualizer:
                                 alt.value('lightgrey')),
             order = alt.Order('time:T', sort='ascending'),
             tooltip = [
-                alt.Tooltip('location:N', title='Location'),
+                alt.Tooltip('place:N', title='Location'),
                 alt.Tooltip('mag:Q', title='Magnitude'),
                 alt.Tooltip('depth:Q', title='Depth (km)'),
                 alt.Tooltip('time:T', title='Time')
