@@ -367,8 +367,8 @@ def build_visualizer_control_pannel(input):
     control_pannel.append(html.Div(['Projection'], id='projection_widget', className='widget dropdown-widget'))
     control_pannel.append(html.Div(['Map Tools'], id='map_tools_widget', className='widget slider-widget'))
     control_pannel.append(html.Div(['Map Colors'], id='map_colors_widget', className='widget text-widget'))
-
-    for i in range(4,8):
+    control_pannel.append(html.Div(['Aesthetics'], id='aesthetics_widget', className='widget multiselect-widget'))
+    for i in range(5,8):
         control_pannel.append(html.Div([f'Widget{i}'], id=f'visualizer_widget{i}', className='widget'))
 
     control_pannel.append(html.Div(['Viz Buttons'], id='viz_button_widget', className='widget button-widget'))
@@ -459,6 +459,39 @@ def build_map_colors_widget(input):
         className='text_input'
     )) 
     return widgets
+
+@callback(
+        Output('aesthetics_widget', 'children'),
+        Input('data_table', 'data'),
+        prevent_initial_callback = True
+)
+def build_aesthetics_widget(data):
+    df = pd.DataFrame(data)
+    cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
+    widget = []
+    widget.append(html.H5('Size:'))
+    widget.append(dcc.Dropdown(
+        options=cols,
+        value = 'mag',
+        id='size_dropdown',
+        className='dropdown'
+    ))
+    widget.append(html.H5('Color:'))
+    widget.append(dcc.Dropdown(
+        options=cols,
+        value = 'depth',
+        id='color_dropdown',
+        className='dropdown'
+    ))
+    widget.append(html.H5('Alpha:'))
+    widget.append(dcc.Dropdown(
+        options=cols,
+        value = 'sig',
+        id='alpha_dropdown',
+        className='dropdown'
+    ))
+
+    return widget   
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
