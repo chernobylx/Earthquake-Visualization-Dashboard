@@ -86,9 +86,15 @@
     background-color: rgb(3, 80, 81);
 }
 
-
+.button-widget{
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr;
+}
 
 .dashboard-output{
     grid-area: output;
     background-color: rgb(206, 64, 241);
+}
+.dashboard-output:hover{
+    background-color: rgb(4, 13, 52);
 }

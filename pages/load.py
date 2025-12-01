@@ -159,12 +159,57 @@ def build_loader(input):
 )
 def build_loader_control_pannel(input):
     control_pannel = []
-    control_pannel.append(html.Div(['Date'], id = 'data_range', className='widget date-widget'))
+    control_pannel.append(html.Div(['Date'], id = 'date_range', className='widget date-widget'))
     control_pannel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
-    control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
-    for i in range(4,9):
+    for i in range(3,8):
         control_pannel.append(html.Div([f'Widget{i}'], id=f'loader_widget{i}', className='widget'))
+
+    control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
     return control_pannel
+
+@callback(
+    Output('date_range', 'children'),
+    Input('loader_control_pannel', 'children')
+)
+def build_date_range(input):
+    widget = []
+    widget.append(html.H4('Date Range'))
+    widget.append(dcc.DatePickerRange(
+        start_date=date.today()-timedelta(days=30),
+        end_date=date.today()+timedelta(days=1),
+        stay_open_on_select=False)
+    )
+    return widget
+
+@callback(
+    Output('mag_range', 'children'),
+    Input('loader_control_pannel', 'children')
+)
+def build_mag_range(input):
+    widget = []
+    widget.append(html.H4('Magnitude Range'))
+    widget.append(
+        dcc.RangeSlider(
+            min=0,
+            max=10,
+            step=.1,
+            marks=None,
+            tooltip={'placement': 'bottom', 'always_visible': True}
+        )
+    )
+    return widget
+
+@callback(
+    Output('loader_button_widget', 'children'),
+    Input('loader_control_pannel', 'children')
+)
+def build_loader_buttons(input):
+    widget = []
+    widget.append(html.Button('Count', id='count_button', className='button'))
+    widget.append(html.Button('Load', id='load_button', className='button'))
+    widget.append(html.Button('Clear', id='clear_button', className='button'))
+
+    return widget
 
 @callback(
         Output('visualizer', 'children'),
