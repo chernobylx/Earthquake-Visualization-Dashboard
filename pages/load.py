@@ -179,11 +179,8 @@ def build_loader_control_pannel(input):
     control_pannel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
     control_pannel.append(html.Div(['Significance'], id='sig_range', className='widget slider-widget'))
     control_pannel.append(html.Div(['Depth'], id='depth_range', className='widget slider-widget'))
-
-
-    for i in range(5,7):
-        control_pannel.append(html.Div([f'Widget{i}'], id=f'loader_widget{i}', className='widget'))
-
+    control_pannel.append(html.Div(['Latitude'], id='latitude_range', className='widget slider-widget'))
+    control_pannel.append(html.Div(['Longitude'], id='longitude_range', className='widget slider-widget'))
     control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
     control_pannel.append(html.Div(['EQ Count'], id='count_output', className='widget output-widget'))
     return control_pannel
@@ -268,6 +265,51 @@ def build_depth_range(input):
     return widget
 
 @callback(
+    Output('latitude_range', 'children'),
+    Input('loader_control_pannel', 'children')
+)
+def build_latitude_range(input):
+    widget = []
+    widget.append(html.H4('Latitude Range'))
+    widget.append(
+        dcc.RangeSlider(
+            min=-90,
+            max=90,
+            step=1,
+            value=[-90,90],
+            marks=None,
+            tooltip={'placement': 'bottom', 'always_visible': True},
+            id='latitude_range_slider',
+            className='slider'
+        )
+    )
+    return widget
+
+@callback(
+    Output('longitude_range', 'children'),
+    Input('loader_control_pannel', 'children')
+)
+def build_longitude_range(input):
+    widget = []
+    widget.append(html.H4('Longitude Range'))
+    widget.append(
+        dcc.RangeSlider(
+            min=-180,
+            max=180,
+            step=1,
+            value=[-180,180],
+            marks=None,
+            tooltip={'placement': 'bottom', 'always_visible': True},
+            id='longitude_range_slider',
+            className='slider'
+        )
+    )
+    return widget
+
+
+
+
+@callback(
     Output('loader_button_widget', 'children'),
     Input('loader_control_pannel', 'children')
 )
@@ -307,6 +349,8 @@ def build_visualizer_control_pannel(input):
     State('mag_range_slider', 'value'),
     State('sig_range_slider', 'value'),
     State('depth_range_slider', 'value'),
+    State('latitude_range_slider', 'value'),
+    State('longitude_range_slider', 'value'),
     Input('load_button', 'n_clicks'),
     prevent_initial_call=True,
 )
@@ -315,6 +359,8 @@ def update_data_table(start_date,
                         magrange,
                         sigrange,
                         depthrange,
+                        latrange,
+                        lonrange,
                         n_clicks):
     if not n_clicks or n_clicks == 0:
         raise PreventUpdate
@@ -332,7 +378,11 @@ def update_data_table(start_date,
                                minsig=sigrange[0],
                                maxsig=sigrange[1],
                                mindepth=depthrange[0],
-                               maxdepth=depthrange[1])
+                               maxdepth=depthrange[1],
+                               minlatitude=latrange[0],
+                               maxlatitude=latrange[1],
+                               minlongitude=lonrange[0],
+                               maxlongitude=lonrange[1])
         dl = DataLoader(params)
         dl.query()
         df = dl.preprocess()
@@ -359,6 +409,8 @@ def clear_output(n_clicks):
     State('mag_range_slider', 'value'),
     State('sig_range_slider', 'value'),
     State('depth_range_slider', 'value'),
+    State('latitude_range_slider', 'value'),
+    State('longitude_range_slider', 'value'),
     Input('count_button', 'n_clicks'),
     prevent_initial_call = True
 )
@@ -367,6 +419,8 @@ def count_earthquakes(start_date,
                         magrange,
                         sigrange,
                         depthrange,
+                        latrange,
+                        lonrange,
                         n_clicks):
     if not n_clicks or n_clicks==0:
         raise PreventUpdate
@@ -384,7 +438,11 @@ def count_earthquakes(start_date,
                                minsig=sigrange[0],
                                maxsig=sigrange[1],
                                mindepth=depthrange[0],
-                               maxdepth=depthrange[1])
+                               maxdepth=depthrange[1],
+                               minlatitude=latrange[0],
+                               maxlatitude=latrange[1],
+                               minlongitude=lonrange[0],
+                               maxlongitude=lonrange[1])
         dl = DataLoader(params)
         return f'Found {dl.count()} earthquakes' 
 
