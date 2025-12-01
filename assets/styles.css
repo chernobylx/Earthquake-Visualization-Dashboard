@@ -41,7 +41,7 @@
 .control-pannel{
     grid-area: ctrl;
     background-color: rgb(0,0,114);
-
+    height: 44vh;
     display: grid;
     grid-template-columns: 1vh repeat(4, 1fr) 1vh;
     grid-template-rows: 1vh repeat(2, 1fr) 1vh;
@@ -100,15 +100,12 @@
     background-color: rgb(0,70,139);
 }
 
-#date_range_picker{
-    background-color: darkblue;
-    color: rgb(120,120,0);
-}
 
 .dashboard-output{
     grid-area: output;
     background-color: darkblue;
     display: grid;
+    height: 44vh;
     grid-template-columns: 1vh 1fr 1vh;
     grid-template-rows: 1vh 1fr 1vh;
 }
