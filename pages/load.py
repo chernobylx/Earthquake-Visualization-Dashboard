@@ -166,7 +166,7 @@ def build_loader_output(input):
             filter_action = 'native',
             sort_action = 'native',
             style_table={
-                'height': '44vh',
+                'height': '38vh',
                 'width': '44vw',
                 'overflowY': 'auto'
             },
