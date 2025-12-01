@@ -196,6 +196,7 @@ def build_mag_range(input):
             min=0,
             max=10,
             step=.1,
+            value=[6,9.1],
             marks=None,
             tooltip={'placement': 'bottom', 'always_visible': True},
             id='mag_range_slider',
