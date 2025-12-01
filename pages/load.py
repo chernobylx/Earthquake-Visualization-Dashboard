@@ -178,8 +178,10 @@ def build_loader_control_pannel(input):
     control_pannel.append(html.Div(['Date'], id = 'date_range', className='widget date-widget'))
     control_pannel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
     control_pannel.append(html.Div(['Significance'], id='sig_range', className='widget slider-widget'))
+    control_pannel.append(html.Div(['Depth'], id='depth_range', className='widget slider-widget'))
 
-    for i in range(4,7):
+
+    for i in range(5,7):
         control_pannel.append(html.Div([f'Widget{i}'], id=f'loader_widget{i}', className='widget'))
 
     control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
@@ -233,7 +235,7 @@ def build_sig_range(input):
     widget.append(
         dcc.RangeSlider(
             min=0,
-            max=5000,
+            max=3000,
             step=50,
             value=[0, 3000],
             marks=None,
@@ -243,6 +245,28 @@ def build_sig_range(input):
         )
     )
     return widget
+
+@callback(
+    Output('depth_range', 'children'),
+    Input('loader_control_pannel', 'children')
+)
+def build_depth_range(input):
+    widget = []
+    widget.append(html.H4('Depth Range'))
+    widget.append(
+        dcc.RangeSlider(
+            min=-100,
+            max=1000,
+            step=25,
+            value=[-100, 1000],
+            marks=None,
+            tooltip={'placement': 'bottom', 'always_visible': True},
+            id='depth_range_slider',
+            className='slider'
+        )
+    )
+    return widget
+
 @callback(
     Output('loader_button_widget', 'children'),
     Input('loader_control_pannel', 'children')
@@ -282,6 +306,7 @@ def build_visualizer_control_pannel(input):
     State('date_range_picker', 'end_date'),
     State('mag_range_slider', 'value'),
     State('sig_range_slider', 'value'),
+    State('depth_range_slider', 'value'),
     Input('load_button', 'n_clicks'),
     prevent_initial_call=True,
 )
@@ -289,6 +314,7 @@ def update_data_table(start_date,
                         end_date,
                         magrange,
                         sigrange,
+                        depthrange,
                         n_clicks):
     if not n_clicks or n_clicks == 0:
         raise PreventUpdate
@@ -304,7 +330,9 @@ def update_data_table(start_date,
                                minmagnitude=magrange[0], 
                                maxmagnitude=magrange[1],
                                minsig=sigrange[0],
-                               maxsig=sigrange[1])
+                               maxsig=sigrange[1],
+                               mindepth=depthrange[0],
+                               maxdepth=depthrange[1])
         dl = DataLoader(params)
         dl.query()
         df = dl.preprocess()
@@ -330,13 +358,16 @@ def clear_output(n_clicks):
     State('date_range_picker', 'end_date'),
     State('mag_range_slider', 'value'),
     State('sig_range_slider', 'value'),
+    State('depth_range_slider', 'value'),
     Input('count_button', 'n_clicks'),
     prevent_initial_call = True
 )
-def count_earthquakes(start_date, end_date,
-                  magrange,
-                  sigrange,
-                  n_clicks):
+def count_earthquakes(start_date, 
+                        end_date,
+                        magrange,
+                        sigrange,
+                        depthrange,
+                        n_clicks):
     if not n_clicks or n_clicks==0:
         raise PreventUpdate
     else:
@@ -351,7 +382,9 @@ def count_earthquakes(start_date, end_date,
                                minmagnitude=magrange[0], 
                                maxmagnitude=magrange[1],
                                minsig=sigrange[0],
-                               maxsig=sigrange[1])
+                               maxsig=sigrange[1],
+                               mindepth=depthrange[0],
+                               maxdepth=depthrange[1])
         dl = DataLoader(params)
         return f'Found {dl.count()} earthquakes' 
 
