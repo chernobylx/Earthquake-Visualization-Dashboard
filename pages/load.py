@@ -234,7 +234,7 @@ def build_date_range(input):
 )
 def build_mag_range(input):
     widget = []
-    widget.append(html.H4('Magnitude Range'))
+    widget.append(html.H5('mag:'))
     widget.append(
         dcc.RangeSlider(
             min=0,
@@ -255,7 +255,7 @@ def build_mag_range(input):
 )
 def build_sig_range(input):
     widget = []
-    widget.append(html.H4('Significance Range'))
+    widget.append(html.H5('sig:'))
     widget.append(
         dcc.RangeSlider(
             min=0,
@@ -276,7 +276,7 @@ def build_sig_range(input):
 )
 def build_depth_range(input):
     widget = []
-    widget.append(html.H4('Depth Range'))
+    widget.append(html.H5('depth:'))
     widget.append(
         dcc.RangeSlider(
             min=-100,
@@ -297,7 +297,7 @@ def build_depth_range(input):
 )
 def build_latitude_range(input):
     widget = []
-    widget.append(html.H4('Latitude Range'))
+    widget.append(html.H5('lat:'))
     widget.append(
         dcc.RangeSlider(
             min=-90,
@@ -318,7 +318,7 @@ def build_latitude_range(input):
 )
 def build_longitude_range(input):
     widget = []
-    widget.append(html.H4('Longitude Range'))
+    widget.append(html.H5('lon:'))
     widget.append(
         dcc.RangeSlider(
             min=-180,
