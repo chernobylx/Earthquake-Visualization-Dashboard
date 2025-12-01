@@ -364,9 +364,101 @@ def build_visualizer(input):
 )
 def build_visualizer_control_pannel(input):
     control_pannel = []
-    for i in range(1,9):
+    control_pannel.append(html.Div(['Projection'], id='projection_widget', className='widget dropdown-widget'))
+    control_pannel.append(html.Div(['Map Tools'], id='map_tools_widget', className='widget slider-widget'))
+    control_pannel.append(html.Div(['Map Colors'], id='map_colors_widget', className='widget text-widget'))
+
+    for i in range(4,8):
         control_pannel.append(html.Div([f'Widget{i}'], id=f'visualizer_widget{i}', className='widget'))
+
+    control_pannel.append(html.Div(['Viz Buttons'], id='viz_button_widget', className='widget button-widget'))
     return control_pannel
+
+@callback(
+        Output('projection_widget', 'children'),
+        Input('visualizer_control_pannel', 'children')
+)
+def build_projection_widget(input):
+    widget = []
+    widget.append(html.H4('Map Projection'))
+    widget.append(
+        dcc.Dropdown(
+            options = ['naturalEarth', 'azimuthalEqualArea', 'mercator'],
+            value = 'naturalEarth',
+            id = 'projection_dropdown',
+            className = 'widget dropdown-widget'
+        )
+    )
+
+    return widget
+
+@callback(
+        Output('map_tools_widget', 'children'),
+        Input('visualizer_control_pannel', 'children')
+)
+def build_map_tools_widget(input):
+    widget = []
+    widget.append(html.H5('Rotate Y:'))
+    widget.append(dcc.Slider(
+        min=-179.9,
+        max=179.9,
+        step = 1,
+        value = 0,
+        marks = None,
+        tooltip={'placement': 'bottom', 'always_visible': True},
+        id='phi_slider',
+        className='slider'
+    ))
+    widget.append(html.H5('Rotate X:'))
+    widget.append(dcc.Slider(
+        min=-89.9,
+        max=89.9,
+        step = 1,
+        value = 0,
+        marks = None,
+        tooltip={'placement': 'bottom', 'always_visible': True},
+        id='theta_slider',
+        className='slider'
+    ))
+    widget.append(html.H5('scale'))
+    widget.append(dcc.Slider(
+        min=10,
+        max=1000,
+        step = 10,
+        value = 100,
+        marks = None,
+        tooltip={'placement': 'bottom', 'always_visible': True},
+        id='scale_slider',
+        className='slider'
+    ))
+
+    return widget
+
+@callback(
+        Output('map_colors_widget', 'children'),
+        Input('visualizer_control_pannel', 'children')
+)
+def build_map_colors_widget(input):
+    widgets = []
+    widgets.append(html.H5('Background:'))
+    widgets.append(dcc.Input(
+        value='darkgrey',
+        id='map_background',
+        className='text_input'
+    ))
+    widgets.append(html.H5('Fill:'))
+    widgets.append(dcc.Input(
+        value='#00008d',
+        id='map_fill',
+        className='text_input'
+    ))
+    widgets.append(html.H5('Stroke:'))
+    widgets.append(dcc.Input(
+        value='lightgrey',
+        id='map_stroke',
+        className='text_input'
+    )) 
+    return widgets
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
