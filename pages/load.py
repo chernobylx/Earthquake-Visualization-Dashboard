@@ -161,10 +161,11 @@ def build_loader_control_pannel(input):
     control_pannel = []
     control_pannel.append(html.Div(['Date'], id = 'date_range', className='widget date-widget'))
     control_pannel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
-    for i in range(3,8):
+    for i in range(3,7):
         control_pannel.append(html.Div([f'Widget{i}'], id=f'loader_widget{i}', className='widget'))
 
     control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
+    control_pannel.append(html.Div(['EQ Count'], id='count_output', className='widget output-widget'))
     return control_pannel
 
 @callback(
@@ -177,7 +178,9 @@ def build_date_range(input):
     widget.append(dcc.DatePickerRange(
         start_date=date.today()-timedelta(days=30),
         end_date=date.today()+timedelta(days=1),
-        stay_open_on_select=False)
+        stay_open_on_select=False,
+        id='date_range_picker',
+        className='date_range_picker')
     )
     return widget
 
@@ -194,7 +197,9 @@ def build_mag_range(input):
             max=10,
             step=.1,
             marks=None,
-            tooltip={'placement': 'bottom', 'always_visible': True}
+            tooltip={'placement': 'bottom', 'always_visible': True},
+            id='mag_range_slider',
+            className='slider'
         )
     )
     return widget
@@ -234,13 +239,13 @@ def build_visualizer_control_pannel(input):
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
     Output('data_table', 'columns'),
-    State('date_range', 'start_date'),
-    State('date_range', 'end_date'),
-    State('mag_range', 'value'),
+    State('date_range_picker', 'start_date'),
+    State('date_range_picker', 'end_date'),
+    State('mag_range_slider', 'value'),
     Input('load_button', 'n_clicks'),
     prevent_initial_call=True,
 )
-def update_output(start_date, end_date,
+def update_data_table(start_date, end_date,
                   magrange,
                   n_clicks):
     format = "%Y-%m-%d"
@@ -258,7 +263,7 @@ def update_output(start_date, end_date,
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
-    Output('count_div', 'children', allow_duplicate=True),
+    Output('count_output', 'children', allow_duplicate=True),
     Input('clear_button', 'n_clicks'),
     prevent_initial_call=True,
     allow_duplicate = True
@@ -267,10 +272,10 @@ def clear_output(n_clicks):
     return pd.DataFrame().to_dict('records'), 'Click Count'
 
 @callback(
-    Output('count_div', 'children', allow_duplicate=True),
-    State('date_range', 'start_date'),
-    State('date_range', 'end_date'),
-    State('mag_range', 'value'),
+    Output('count_output', 'children', allow_duplicate=True),
+    State('date_range_picker', 'start_date'),
+    State('date_range_picker', 'end_date'),
+    State('mag_range_slider', 'value'),
     Input('count_button', 'n_clicks'),
     prevent_initial_call = True
 )
