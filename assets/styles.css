@@ -1,11 +1,12 @@
 #layout{
     background-color: rgb(15, 0, 33);
     height: 100vh;
+    width: 100vw;
     color: rgb(77, 229, 232);
     font-family: monospace;
     display: grid;
-    grid-template-columns: 25px 1fr 1fr 25px;
-    grid-template-rows: 25px 1fr 25px;
+    grid-template-columns: 1vh 1fr 1fr 1vh;
+    grid-template-rows: 1vh 1fr 1vh;
     grid-template-areas:    '.  header  header  .'
                             '.  loader  viz     .'
                             '.  .       .       .';
@@ -15,10 +16,11 @@
 }
 .dashboard {
     background-color: blueviolet;
+    max-height: 95vh;
     display: grid;
-    grid-template-columns: 10px 1fr 10px;
-    grid-template-rows:  10px 1fr 1fr 10px;
-    row-gap: 10px;
+    grid-template-columns: 1vh 1fr 1vh;
+    grid-template-rows:  1vh 1fr 1fr 1vh;
+    row-gap: 1vh;
     grid-template-areas:    '.    .         .'
                             '.    ctrl      .'
                             '.    output    .'
@@ -41,8 +43,8 @@
     background-color: rgb(231, 64, 228);
 
     display: grid;
-    grid-template-columns: 10px repeat(4, 1fr) 10px;
-    grid-template-rows: 10px repeat(2, 1fr) 10px;
+    grid-template-columns: 1vh repeat(4, 1fr) 1vh;
+    grid-template-rows: 1vh repeat(2, 1fr) 1vh;
     grid-template-areas:    '.  .   .   .   .   .'
                             '.  w1  w2  w3  w4  .'
                             '.  w5  w6  w7  w8  .'
@@ -94,7 +96,17 @@
 .dashboard-output{
     grid-area: output;
     background-color: rgb(206, 64, 241);
+    display: grid;
+    grid-template-columns: 1vh 1fr 1vh;
+    grid-template-rows: 1vh 1fr 1vh;
 }
 .dashboard-output:hover{
     background-color: rgb(4, 13, 52);
+}
+#data_table{
+    grid-column: 2;
+    grid-row: 2;
+}
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner input:not([type=radio]):not([type=checkbox]){
+    color:rgb(77, 229, 232)!important;
 }

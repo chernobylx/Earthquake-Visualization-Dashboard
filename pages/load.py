@@ -162,9 +162,33 @@ def build_loader_output(input):
     loader_output = []
     loader_output.append(dash_table.DataTable(
             id = 'data_table',
-            page_size=10,
+            page_size=50,
             filter_action = 'native',
-            sort_action = 'native')
+            sort_action = 'native',
+            style_table={
+                'height': '44vh',
+                'overflow': 'auto'
+            },
+            style_data={
+                'whiteSpace': 'normal',
+                'height': 'auto',
+            },
+            style_cell={'textAlign': 'left'},
+            style_as_list_view=True,
+            style_header={'backgroundColor': 'darkblue'},
+            style_data_conditional=[
+                {
+                'if': {'row_index': 'odd'},
+                'backgroundColor': 'rgb(0,70,139)',
+                },
+                {
+                'if': {'row_index': 'even'},
+                'backgroundColor': 'rgb(70,0,139)',
+                },
+            ],
+            style_filter={'backgroundColor': 'rgb(0,0,165)',
+                          'color': 'rgb(0,0,165)'}   
+        )
     )
     return loader_output
 
