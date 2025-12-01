@@ -1,6 +1,7 @@
 import dash
 import dash_vega_components as dvc
 from dash import html, dcc, callback, Input, Output, State, dash_table
+from dash.exceptions import PreventUpdate
 from datetime import datetime, date, timedelta
 from DataLoader import DataLoader, RequestParams, DT_FORMAT
 from DataVisualizer import DataVisualizer
@@ -264,18 +265,21 @@ def build_visualizer_control_pannel(input):
 def update_data_table(start_date, end_date,
                   magrange,
                   n_clicks):
-    format = "%Y-%m-%d"
-    start_time = datetime.strptime(start_date, format)
-    start_time = datetime.strftime(start_time, DT_FORMAT)
-    end_time = datetime.strptime(end_date, format)
-    end_time = datetime.strftime(end_time, DT_FORMAT)
+    if not n_clicks or n_clicks == 0:
+        raise PreventUpdate
+    else:
+        format = "%Y-%m-%d"
+        start_time = datetime.strptime(start_date, format)
+        start_time = datetime.strftime(start_time, DT_FORMAT)
+        end_time = datetime.strptime(end_date, format)
+        end_time = datetime.strftime(end_time, DT_FORMAT)
 
-    params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
-    dl = DataLoader(params)
-    dl.query()
-    df = dl.preprocess()
-    columns = [{"name": col, "id": col} for col in df.columns]
-    return df.to_dict('records'), columns
+        params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
+        dl = DataLoader(params)
+        dl.query()
+        df = dl.preprocess()
+        columns = [{"name": col, "id": col} for col in df.columns]
+        return df.to_dict('records'), columns
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
@@ -285,7 +289,10 @@ def update_data_table(start_date, end_date,
     allow_duplicate = True
 )
 def clear_output(n_clicks):
-    return pd.DataFrame().to_dict('records'), 'Click Count'
+    if not n_clicks or n_clicks ==0:
+        raise PreventUpdate
+    else:
+        return pd.DataFrame().to_dict('records'), 'Click Count'
 
 @callback(
     Output('count_output', 'children', allow_duplicate=True),
@@ -298,15 +305,18 @@ def clear_output(n_clicks):
 def count_earthquakes(start_date, end_date,
                   magrange,
                   n_clicks):
-    format = "%Y-%m-%d"
-    start_time = datetime.strptime(start_date, format)
-    start_time = datetime.strftime(start_time, DT_FORMAT)
-    end_time = datetime.strptime(end_date, format)
-    end_time = datetime.strftime(end_time, DT_FORMAT)
+    if not n_clicks or n_clicks==0:
+        raise PreventUpdate
+    else:
+        format = "%Y-%m-%d"
+        start_time = datetime.strptime(start_date, format)
+        start_time = datetime.strftime(start_time, DT_FORMAT)
+        end_time = datetime.strptime(end_date, format)
+        end_time = datetime.strftime(end_time, DT_FORMAT)
 
-    params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
-    dl = DataLoader(params)
-    return f'Found {dl.count()} earthquakes' 
+        params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
+        dl = DataLoader(params)
+        return f'Found {dl.count()} earthquakes' 
 
 
 @callback(
