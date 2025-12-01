@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 #Datetime format for the project
-DT_FORMAT = "%y-%m-%d %H:%M:%S"
+DT_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 #columns and their types expected by the datavisuzlizer
 COL_TYPES = {'place': 'object',
