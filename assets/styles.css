@@ -1,8 +1,8 @@
 #layout{
-    background-color: rgb(15, 0, 33);
+    background-color: rgb(0,0,63);
     height: 100vh;
     width: 100vw;
-    color: rgb(77, 229, 232);
+    color: rgb(80, 80, 215);
     font-family: monospace;
     display: grid;
     grid-template-columns: 1vh 1fr 1fr 1vh;
@@ -15,7 +15,7 @@
     column-gap: 10px;
 }
 .dashboard {
-    background-color: blueviolet;
+    background-color: rgb(0,0,88);
     max-height: 95vh;
     display: grid;
     grid-template-columns: 1vh 1fr 1vh;
@@ -27,7 +27,7 @@
                             '.    .         .';
 }
 .dashboard:hover{
-    background-color: rgb(90, 14, 166);
+    background-color: rgb(0,44,88);
 }
 
 #loader {
@@ -40,7 +40,7 @@
 
 .control-pannel{
     grid-area: ctrl;
-    background-color: rgb(231, 64, 228);
+    background-color: rgb(0,0,114);
 
     display: grid;
     grid-template-columns: 1vh repeat(4, 1fr) 1vh;
@@ -53,7 +53,7 @@
     row-gap: 5px;
 }
 .control-pannel:hover{
-    background-color: rgb(128, 64, 231);
+    background-color: rgb(0, 57, 114);
 }
 
 .control-pannel >:nth-child(1){
@@ -82,31 +82,43 @@
 }
 
 .widget{
-    background-color: green;
+    background-color: darkblue;
 }
 .widget:hover{
-    background-color: rgb(3, 80, 81);
+    background-color: rgb(0,70,139);
 }
 
 .button-widget{
     display: grid;
     grid-template-rows: 1fr 1fr 1fr;
 }
+.button{
+    color: rgb(108, 108, 224);
+    background-color: darkblue;
+}
+.button:hover{
+    background-color: rgb(0,70,139);
+}
+
+#date_range_picker{
+    background-color: darkblue;
+    color: rgb(120,120,0);
+}
 
 .dashboard-output{
     grid-area: output;
-    background-color: rgb(206, 64, 241);
+    background-color: darkblue;
     display: grid;
     grid-template-columns: 1vh 1fr 1vh;
     grid-template-rows: 1vh 1fr 1vh;
 }
 .dashboard-output:hover{
-    background-color: rgb(4, 13, 52);
+    background-color: rgb(0,70,139);
 }
 #data_table{
     grid-column: 2;
     grid-row: 2;
 }
 .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner input:not([type=radio]):not([type=checkbox]){
-    color:rgb(77, 229, 232)!important;
+    color:rgb(76, 76, 238)!important;
 }
