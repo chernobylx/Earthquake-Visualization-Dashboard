@@ -177,7 +177,9 @@ def build_loader_control_pannel(input):
     control_pannel = []
     control_pannel.append(html.Div(['Date'], id = 'date_range', className='widget date-widget'))
     control_pannel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
-    for i in range(3,7):
+    control_pannel.append(html.Div(['Significance'], id='sig_range', className='widget slider-widget'))
+
+    for i in range(4,7):
         control_pannel.append(html.Div([f'Widget{i}'], id=f'loader_widget{i}', className='widget'))
 
     control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
@@ -222,6 +224,26 @@ def build_mag_range(input):
     return widget
 
 @callback(
+    Output('sig_range', 'children'),
+    Input('loader_control_pannel', 'children')
+)
+def build_sig_range(input):
+    widget = []
+    widget.append(html.H4('Significance Range'))
+    widget.append(
+        dcc.RangeSlider(
+            min=0,
+            max=5000,
+            step=50,
+            value=[0, 3000],
+            marks=None,
+            tooltip={'placement': 'bottom', 'always_visible': True},
+            id='sig_range_slider',
+            className='slider'
+        )
+    )
+    return widget
+@callback(
     Output('loader_button_widget', 'children'),
     Input('loader_control_pannel', 'children')
 )
@@ -259,12 +281,15 @@ def build_visualizer_control_pannel(input):
     State('date_range_picker', 'start_date'),
     State('date_range_picker', 'end_date'),
     State('mag_range_slider', 'value'),
+    State('sig_range_slider', 'value'),
     Input('load_button', 'n_clicks'),
     prevent_initial_call=True,
 )
-def update_data_table(start_date, end_date,
-                  magrange,
-                  n_clicks):
+def update_data_table(start_date, 
+                        end_date,
+                        magrange,
+                        sigrange,
+                        n_clicks):
     if not n_clicks or n_clicks == 0:
         raise PreventUpdate
     else:
@@ -274,7 +299,12 @@ def update_data_table(start_date, end_date,
         end_time = datetime.strptime(end_date, format)
         end_time = datetime.strftime(end_time, DT_FORMAT)
 
-        params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
+        params = RequestParams(starttime=start_time, 
+                               endtime=end_time, 
+                               minmagnitude=magrange[0], 
+                               maxmagnitude=magrange[1],
+                               minsig=sigrange[0],
+                               maxsig=sigrange[1])
         dl = DataLoader(params)
         dl.query()
         df = dl.preprocess()
@@ -299,11 +329,13 @@ def clear_output(n_clicks):
     State('date_range_picker', 'start_date'),
     State('date_range_picker', 'end_date'),
     State('mag_range_slider', 'value'),
+    State('sig_range_slider', 'value'),
     Input('count_button', 'n_clicks'),
     prevent_initial_call = True
 )
 def count_earthquakes(start_date, end_date,
                   magrange,
+                  sigrange,
                   n_clicks):
     if not n_clicks or n_clicks==0:
         raise PreventUpdate
@@ -314,7 +346,12 @@ def count_earthquakes(start_date, end_date,
         end_time = datetime.strptime(end_date, format)
         end_time = datetime.strftime(end_time, DT_FORMAT)
 
-        params = RequestParams(starttime=start_time, endtime=end_time, minmagnitude=magrange[0], maxmagnitude=magrange[1])
+        params = RequestParams(starttime=start_time, 
+                               endtime=end_time, 
+                               minmagnitude=magrange[0], 
+                               maxmagnitude=magrange[1],
+                               minsig=sigrange[0],
+                               maxsig=sigrange[1])
         dl = DataLoader(params)
         return f'Found {dl.count()} earthquakes' 
 
