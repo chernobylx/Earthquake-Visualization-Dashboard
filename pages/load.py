@@ -150,8 +150,23 @@ def build_page(input):
 def build_loader(input):
     loader = []
     loader.append(html.Div(['Control Pannel'], id = 'loader_control_pannel', className='control-pannel'))
-    loader.append(html.Div(['Data Table'], id = 'data_table', className='dashboard-output data-table'))
+    loader.append(html.Div(['Data Table'], id = 'loader_output', className='dashboard-output'))
     return loader
+
+@callback(
+        Output('loader_output', 'children'),
+        Input('loader', 'children')
+)
+def build_loader_output(input):
+    loader_output = []
+    loader_output.append(dash_table.DataTable(
+            id = 'data_table',
+            page_size=10,
+            filter_action = 'native',
+            sort_action = 'native')
+    )
+    return loader_output
+
 
 @callback(
         Output('loader_control_pannel', 'children'),
@@ -211,9 +226,9 @@ def build_mag_range(input):
 )
 def build_loader_buttons(input):
     widget = []
-    widget.append(html.Button('Count', id='count_button', className='button'))
-    widget.append(html.Button('Load', id='load_button', className='button'))
-    widget.append(html.Button('Clear', id='clear_button', className='button'))
+    widget.append(html.Button('Count', id='count_button', className='button', n_clicks=0))
+    widget.append(html.Button('Load', id='load_button', className='button', n_clicks=0))
+    widget.append(html.Button('Clear', id='clear_button', className='button', n_clicks=0))
 
     return widget
 
