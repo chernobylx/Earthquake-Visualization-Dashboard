@@ -4,8 +4,8 @@
     color: rgb(77, 229, 232);
     font-family: monospace;
     display: grid;
-    grid-template-columns: 1fr 4fr 4fr 1fr;
-    grid-template-rows: 1fr 9fr 1fr;
+    grid-template-columns: 25px 1fr 1fr 25px;
+    grid-template-rows: 25px 1fr 25px;
     grid-template-areas:    '.  header  header  .'
                             '.  loader  viz     .'
                             '.  .       .       .';
@@ -24,6 +24,9 @@
                             '.    output    .'
                             '.    .         .';
 }
+.dashboard:hover{
+    background-color: rgb(90, 14, 166);
+}
 
 #loader {
     grid-area: loader;
@@ -35,18 +38,55 @@
 
 .control-pannel{
     grid-area: ctrl;
-    background-color: rgb(128, 64, 231);
+    background-color: rgb(231, 64, 228);
 
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: 10px repeat(4, 1fr) 10px;
+    grid-template-rows: 10px repeat(2, 1fr) 10px;
+    grid-template-areas:    '.  .   .   .   .   .'
+                            '.  w1  w2  w3  w4  .'
+                            '.  w5  w6  w7  w8  .'
+                            '.  .   .   .   .   .';
     column-gap: 5px;
     row-gap: 5px;
+}
+.control-pannel:hover{
+    background-color: rgb(128, 64, 231);
+}
+
+.control-pannel >:nth-child(1){
+    grid-area: w1;
+}
+.control-pannel >:nth-child(2){
+    grid-area: w2;
+}
+.control-pannel >:nth-child(3){
+    grid-area: w3;
+}
+.control-pannel >:nth-child(4){
+    grid-area: w4;
+}
+.control-pannel >:nth-child(5){
+    grid-area: w5;
+}
+.control-pannel >:nth-child(6){
+    grid-area: w6;
+}
+.control-pannel >:nth-child(7){
+    grid-area: w7;
+}
+.control-pannel >:nth-child(8){
+    grid-area: w8;
 }
 
 .widget{
     background-color: green;
 }
+.widget:hover{
+    background-color: rgb(3, 80, 81);
+}
+
+
 
 .dashboard-output{
     grid-area: output;
