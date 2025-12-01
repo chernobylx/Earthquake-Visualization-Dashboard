@@ -167,13 +167,16 @@ def build_loader_output(input):
             sort_action = 'native',
             style_table={
                 'height': '44vh',
-                'overflow': 'auto'
+                'width': '44vw',
+                'overflowY': 'auto'
             },
             style_data={
                 'whiteSpace': 'normal',
                 'height': 'auto',
             },
-            style_cell={'textAlign': 'left'},
+            style_cell={'textAlign': 'left',
+                        'wordBreak': 'break-all',
+            },
             style_as_list_view=True,
             style_header={'backgroundColor': 'darkblue'},
             style_data_conditional=[
