@@ -213,5 +213,5 @@ class DataVisualizer:
             earth &= hist
 
         earth |= heatmap
-        return earth
+        return earth.properties(background = 'darkgrey')
 
