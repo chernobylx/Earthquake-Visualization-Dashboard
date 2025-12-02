@@ -213,5 +213,7 @@ class DataVisualizer:
 
         earth |= heatmap
         earth = earth.resolve_scale(color='independent')
-        return earth.properties(background = background)
+        earth = earth.properties(background = background)
+        return earth
+
 
