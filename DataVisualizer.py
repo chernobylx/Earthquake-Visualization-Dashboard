@@ -62,6 +62,9 @@ class DataVisualizer:
                        alt.Tooltip(color_var, title = color_var.capitalize())]
         ).transform_filter(
             *filters
+        ).properties(
+            width=width,
+            height=height,
         )
         return chart
 
@@ -133,7 +136,7 @@ class DataVisualizer:
         filter_width = map_width
         filter_height = int((height - map_height) / len(filter_vars))
 
-        heatmap__width = width - map_width
+        heatmap_width = width - map_width
         heatmap_height = map_height
 
         rotation = [phi, theta, 0]
@@ -202,7 +205,7 @@ class DataVisualizer:
         heatmap = self.create_heatmap(filters = filters,
                                  x_var = heatmap_x,
                                  y_var = heatmap_y,
-                                 width = heatmap__width,
+                                 width = heatmap_width,
                                  height = heatmap_height,
                                  color_var = heatmap_color)
 
