@@ -683,6 +683,7 @@ def count_earthquakes(start_date,
     State('x_dropdown', 'value'),
     State('y_dropdown', 'value'),
     State('heatmap_color_dropdown', 'value'),
+    State('filter_dropdown', 'value'),
     Input('visualizer_dimensions', 'data'),
     Input('viz_button', 'n_clicks'),
     prevent_initial_call = True
@@ -701,6 +702,7 @@ def update_visualizer(data,
                       x_var,
                       y_var,
                       heatmap_color,
+                      filter_vars,
                       dimensions,
                       n_clicks):
     # Extract dimensions with fallbacks
@@ -735,6 +737,7 @@ def update_visualizer(data,
         heatmap_x=x_var,
         heatmap_y=y_var,
         heatmap_color=heatmap_color,
+        filter_vars=filter_vars,
         background = map_background,
     ).to_dict()
     return dvc.Vega(
