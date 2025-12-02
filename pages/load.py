@@ -504,7 +504,7 @@ def build_map_aesthetics_widget(data):
 def build_heatmap_aesthetics_widget(data):
     df = pd.DataFrame(data)
     if len(df):
-        df['time'] = pd.to_datetime(df['time'], utc=True)
+        df['time'] = pd.to_datetime(df['time'], utc=True, format='ISO8601')
     cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
     widget = []
     widget.append(html.H5('X:'))
@@ -539,7 +539,7 @@ def build_heatmap_aesthetics_widget(data):
 def build_filter_widget(data):
     df = pd.DataFrame(data)
     if len(df):
-        df['time'] = pd.to_datetime(df['time'], utc=True)
+        df['time'] = pd.to_datetime(df['time'], utc=True, format='ISO8601')
     cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
     widget = []
     widget.append(html.H5('Filters:'))
@@ -710,7 +710,7 @@ def update_visualizer(data,
         height = 200  # Fallback height
 
     df = pd.DataFrame(data)
-    df['time'] = pd.to_datetime(df['time'], utc=True)
+    df['time'] = pd.to_datetime(df['time'], utc=True,format='ISO8601')
     dv = DataVisualizer(df)
     spec = dv.create_chart(
         width=width,
