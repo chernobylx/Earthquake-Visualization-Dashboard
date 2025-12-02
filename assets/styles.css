@@ -110,6 +110,12 @@
     display: grid;
     grid-template-columns: 1fr 3fr;
 }
+.dropdown{
+    max-width: 50%;
+    font-size: 10px;
+    max-height: 12px;
+}
+
 #projection_widget{
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
