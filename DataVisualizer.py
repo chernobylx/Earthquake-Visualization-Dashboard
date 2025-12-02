@@ -115,6 +115,7 @@ class DataVisualizer:
             width = map_width,
             height = map_height,
             projection = Projection
+            
         )
 
         graticule = alt.Chart(alt.graticule()).mark_geoshape().properties(projection = Projection)
