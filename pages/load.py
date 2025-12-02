@@ -672,6 +672,10 @@ def count_earthquakes(start_date,
     State('data_table', 'derived_virtual_data'),
     State('projection_dropdown', 'value'),
     State('phi_slider','value'),
+    State('theta_slider', 'value'),
+    State('scale_slider', 'value'),
+    State('map_fill', 'value'),
+    State('map_stroke', 'value'),
     Input('visualizer_dimensions', 'data'),
     Input('viz_button', 'n_clicks'),
     prevent_initial_call = True
@@ -679,6 +683,10 @@ def count_earthquakes(start_date,
 def update_visualizer(data,
                       projection,
                       phi,
+                      theta,
+                      scale,
+                      map_fill,
+                      map_stroke,
                       dimensions,
                       n_clicks):
     # Extract dimensions with fallbacks
@@ -691,9 +699,9 @@ def update_visualizer(data,
 
     # Use fallback dimensions if capture failed
     if width is None or width <= 0:
-        width = 1200  # Fallback width
+        width = 400  # Fallback width
     if height is None or height <= 0:
-        height = 600  # Fallback height
+        height = 200  # Fallback height
 
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True)
@@ -702,7 +710,11 @@ def update_visualizer(data,
         width=width,
         height=height,
         projection=projection,
-        phi=phi
+        phi=phi,
+        theta=theta,
+        scale = scale,
+        map_fill=map_fill,
+        map_stroke=map_stroke
     ).to_dict()
     return dvc.Vega(
         id='map',

@@ -128,11 +128,11 @@ class DataVisualizer:
                      filter_vars = ['time', 'mag', 'sig', 'depth', 'lon', 'lat'],
                      heatmap_x = 'time',
                      heatmap_y = 'depth'):
-        map_width = .6 * width
-        map_height = .8 * height
+        map_width = int(.6 * width)
+        map_height = int(.8 * height)
 
         filter_width = map_width
-        filter_height = (height - map_height) / len(filter_vars)
+        filter_height = int((height - map_height) / len(filter_vars))
 
         heatmap__width = width - map_width
         heatmap_height = map_height
