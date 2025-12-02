@@ -523,7 +523,7 @@ def build_heatmap_aesthetics_widget(data):
     ))
     widget.append(html.H5('Color:'))
     widget.append(dcc.Dropdown(
-        options=['max(mag)'],
+        options=['max(mag)', 'mag', 'mean(depth)'],
         value = 'max(mag)',
         id='heatmap_color_dropdown',
         className='dropdown'
