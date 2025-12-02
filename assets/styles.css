@@ -110,10 +110,36 @@
     display: grid;
     grid-template-columns: 1fr 3fr;
 }
-.dropdown{
+/* Main dropdown container */
+.dropdown {
     max-width: 50%;
     font-size: 10px;
-    max-height: 12px;
+    height: 20px;
+}
+
+/* Target the control div inside the dropdown - this is the key element */
+.dropdown .Select-control {
+    height: 20px !important;
+    min-height: 20px !important;
+    max-height: 20px !important;
+}
+
+/* Target the value container and input */
+.dropdown .Select-value,
+.dropdown .Select-input {
+    line-height: 18px !important;
+    height: 18px !important;
+}
+
+/* Ensure placeholder and single value text aligns properly */
+.dropdown .Select-placeholder,
+.dropdown .Select-value-label {
+    line-height: 18px !important;
+}
+
+/* Also target the arrow/indicator container */
+.dropdown .Select-arrow-zone {
+    height: 20px !important;
 }
 
 #projection_widget{
