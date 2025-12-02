@@ -131,6 +131,7 @@ class DataVisualizer:
                      size_var = 'mag', size_range = [10, 200],
                      filter_vars = ['time', 'mag', 'sig', 'depth', 'lon', 'lat'],
                      heatmap_x = 'time', heatmap_y = 'depth', heatmap_color = 'max(mag)'):
+        width *= .75
         map_width = int(.6 * width)
         map_height = int(.8 * height)
 
@@ -138,7 +139,7 @@ class DataVisualizer:
         filter_height = int((height - map_height) / len(filter_vars))
 
         heatmap_width = width - map_width
-        heatmap_height = map_height
+        heatmap_height = height
 
         rotation = [phi, theta, 0]
         Projection = alt.Projection(type = projection,
