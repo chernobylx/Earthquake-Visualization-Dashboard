@@ -676,6 +676,7 @@ def count_earthquakes(start_date,
     State('scale_slider', 'value'),
     State('map_fill', 'value'),
     State('map_stroke', 'value'),
+    State('map_background', 'value'),
     Input('visualizer_dimensions', 'data'),
     Input('viz_button', 'n_clicks'),
     prevent_initial_call = True
@@ -687,6 +688,7 @@ def update_visualizer(data,
                       scale,
                       map_fill,
                       map_stroke,
+                      map_background,
                       dimensions,
                       n_clicks):
     # Extract dimensions with fallbacks
@@ -714,7 +716,8 @@ def update_visualizer(data,
         theta=theta,
         scale = scale,
         map_fill=map_fill,
-        map_stroke=map_stroke
+        map_stroke=map_stroke,
+        background = map_background,
     ).to_dict()
     return dvc.Vega(
         id='map',

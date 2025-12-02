@@ -121,7 +121,7 @@ class DataVisualizer:
 
     def create_chart(self, width=1200, height=800,
                      projection ='equalEarth', phi = 0, theta = 0, scale = 100,
-                     map_fill = 'darkgrey', map_stroke = 'lightgrey',
+                     map_fill = 'darkgrey', map_stroke = 'lightgrey', background = 'darkgrey',
                      color_var = 'sig', color_scheme = 'magma',
                      opacity_var = 'mag',
                      size_var = 'mag', size_range = [10, 200],
@@ -213,5 +213,5 @@ class DataVisualizer:
             earth &= hist
 
         earth |= heatmap
-        return earth.properties(background = 'darkgrey')
+        return earth.properties(background = background)
 
