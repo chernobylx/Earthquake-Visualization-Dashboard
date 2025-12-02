@@ -132,6 +132,7 @@ class DataVisualizer:
                      filter_vars = ['time', 'mag', 'sig', 'depth', 'lon', 'lat'],
                      heatmap_x = 'time', heatmap_y = 'depth', heatmap_color = 'max(mag)'):
         width *= .75
+        height *= .8
         map_width = int(.6 * width)
         map_height = int(.8 * height)
 
