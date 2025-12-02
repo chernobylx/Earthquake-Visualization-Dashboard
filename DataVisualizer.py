@@ -59,7 +59,7 @@ class DataVisualizer:
             color = Color,
             tooltip = [X_tooltip,
                        Y_tooltip,
-                       alt.Tooltip(color_var+':Q', title = color_var.capitalize())]
+                       alt.Tooltip(color_var, title = color_var.capitalize())]
         ).transform_filter(
             *filters
         )
@@ -212,5 +212,6 @@ class DataVisualizer:
             earth &= hist
 
         earth |= heatmap
+        earth = earth.resolve_scale(color='independent')
         return earth.properties(background = background)
 
