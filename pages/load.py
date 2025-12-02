@@ -355,7 +355,7 @@ def build_loader_buttons(input):
 def build_visualizer(input):
     visualizer = []
     visualizer.append(html.Div(['Control Pannel'], id = 'visualizer_control_pannel', className='control-pannel'))
-    visualizer.append(html.Div(['Visualization'], id = 'visualization', className='dashboard-output visualization'))
+    visualizer.append(html.Div(['Visualization'], id = 'visualizer_output', className='dashboard-output visualization'))
     return visualizer
 
 @callback(
@@ -367,8 +367,10 @@ def build_visualizer_control_pannel(input):
     control_pannel.append(html.Div(['Projection'], id='projection_widget', className='widget dropdown-widget'))
     control_pannel.append(html.Div(['Map Tools'], id='map_tools_widget', className='widget slider-widget'))
     control_pannel.append(html.Div(['Map Colors'], id='map_colors_widget', className='widget text-widget'))
-    control_pannel.append(html.Div(['Aesthetics'], id='aesthetics_widget', className='widget multiselect-widget'))
-    for i in range(5,8):
+    control_pannel.append(html.Div(['Map Aesthetics'], id='map_aesthetics_widget', className='widget dropdown-widget'))
+    control_pannel.append(html.Div(['Heatmap Aesthetics'], id='heatmap_aesthetics_widget', className='widget dropdown-widget'))
+    control_pannel.append(html.Div(['Filters'], id='filter_widget', className='widget dropdown-widget'))
+    for i in range(7,8):
         control_pannel.append(html.Div([f'Widget{i}'], id=f'visualizer_widget{i}', className='widget'))
 
     control_pannel.append(html.Div(['Viz Buttons'], id='viz_button_widget', className='widget button-widget'))
@@ -383,8 +385,8 @@ def build_projection_widget(input):
     widget.append(html.H4('Map Projection'))
     widget.append(
         dcc.Dropdown(
-            options = ['naturalEarth', 'azimuthalEqualArea', 'mercator'],
-            value = 'naturalEarth',
+            options = ['naturalEarth1', 'azimuthalEqualArea', 'mercator'],
+            value = 'naturalEarth1',
             id = 'projection_dropdown',
             className = 'widget dropdown-widget'
         )
@@ -461,11 +463,11 @@ def build_map_colors_widget(input):
     return widgets
 
 @callback(
-        Output('aesthetics_widget', 'children'),
+        Output('map_aesthetics_widget', 'children'),
         Input('data_table', 'data'),
         prevent_initial_callback = True
 )
-def build_aesthetics_widget(data):
+def build_map_aesthetics_widget(data):
     df = pd.DataFrame(data)
     cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
     widget = []
@@ -492,6 +494,71 @@ def build_aesthetics_widget(data):
     ))
 
     return widget   
+
+@callback(
+        Output('heatmap_aesthetics_widget', 'children'),
+        Input('data_table', 'data'),
+        prevent_initial_callback = True
+)
+def build_heatmap_aesthetics_widget(data):
+    df = pd.DataFrame(data)
+    if len(df):
+        df['time'] = pd.to_datetime(df['time'], utc=True)
+    cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
+    widget = []
+    widget.append(html.H5('X:'))
+    widget.append(dcc.Dropdown(
+        options=cols,
+        value = 'time',
+        id='x_dropdown',
+        className='dropdown'
+    ))
+    widget.append(html.H5('Y:'))
+    widget.append(dcc.Dropdown(
+        options=cols,
+        value = 'depth',
+        id='y_dropdown',
+        className='dropdown'
+    ))
+    widget.append(html.H5('Color:'))
+    widget.append(dcc.Dropdown(
+        options=['max(mag)'],
+        value = 'max(mag)',
+        id='heatmap_color_dropdown',
+        className='dropdown'
+    ))
+
+    return widget   
+
+@callback(
+        Output('filter_widget', 'children'),
+        Input('data_table', 'data'),
+        prevent_initial_callback=True
+)
+def build_filter_widget(data):
+    df = pd.DataFrame(data)
+    if len(df):
+        df['time'] = pd.to_datetime(df['time'], utc=True)
+    cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
+    widget = []
+    widget.append(html.H5('Filters:'))
+    widget.append(dcc.Dropdown(
+        multi=True,
+        options=cols,
+        value=['time', 'mag', 'depth'],
+        id='filter_dropdown',
+        className='dropdown multi-dropdown'
+    ))
+
+    return widget
+@callback(
+    Output('viz_button_widget', 'children'),
+    Input('visualizer_control_pannel', 'children')
+)
+def build_viz_button_widget(input):
+    widget = []
+    widget.append(html.Button('Visualize', id='viz_button', className='button'))
+    return widget
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
@@ -602,17 +669,25 @@ def count_earthquakes(start_date,
 @callback(
     Output('visualizer_output', 'children'),
     State('data_table', 'derived_virtual_data'),
-    State('projection_dd', 'value'),
+    State('projection_dropdown', 'value'),
+    State('phi_slider','value'),
+    State('visualizer_output', 'width'),
+    State('visualizer_output', 'height'),
     Input('viz_button', 'n_clicks'),
     prevent_initial_call = True
 )
 def update_visualizer(data,
                       projection,
+                      phi,
+                      width,
+                      height,
                       n_clicks):
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True)
     dv = DataVisualizer(df)
     spec = dv.create_chart(
+        width=width,
+        height=400,
         projection=projection
     ).to_dict()
     return dvc.Vega(

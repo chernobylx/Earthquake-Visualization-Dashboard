@@ -99,16 +99,29 @@
 .button:hover{
     background-color: rgb(0,70,139);
 }
+
 .slider-widget{
     display: grid;
     grid-template-columns: 20px auto;
 }
 
-.text-widget{
+.dropdown-widget{
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: 1fr 3fr;
+}
+#projection_widget{
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
 }
 
+.text-widget{
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+}
+.text_input{
+    height:25%;
+    width: 75%
+}
 .dashboard-output{
     grid-area: output;
     background-color: darkblue;
@@ -120,10 +133,13 @@
 .dashboard-output:hover{
     background-color: rgb(0,70,139);
 }
+
 #data_table{
     grid-column: 2;
     grid-row: 2;
 }
+
 .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner input:not([type=radio]):not([type=checkbox]){
     color:rgb(76, 76, 238)!important;
 }
+
