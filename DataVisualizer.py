@@ -126,8 +126,7 @@ class DataVisualizer:
                      opacity_var = 'mag',
                      size_var = 'mag', size_range = [10, 200],
                      filter_vars = ['time', 'mag', 'sig', 'depth', 'lon', 'lat'],
-                     heatmap_x = 'time',
-                     heatmap_y = 'depth'):
+                     heatmap_x = 'time', heatmap_y = 'depth', heatmap_color = 'max(mag)'):
         map_width = int(.6 * width)
         map_height = int(.8 * height)
 
@@ -205,7 +204,7 @@ class DataVisualizer:
                                  y_var = heatmap_y,
                                  width = heatmap__width,
                                  height = heatmap_height,
-                                 color_var = 'max(mag)')
+                                 color_var = heatmap_color)
 
         earth+=quakes
 
