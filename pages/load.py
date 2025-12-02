@@ -356,6 +356,7 @@ def build_visualizer(input):
     visualizer = []
     visualizer.append(html.Div(['Control Pannel'], id = 'visualizer_control_pannel', className='control-pannel'))
     visualizer.append(html.Div(['Visualization'], id = 'visualizer_output', className='dashboard-output visualization'))
+    visualizer.append(dcc.Store(id='visualizer_dimensions', data={'width': None, 'height': None}))
     return visualizer
 
 @callback(
@@ -671,24 +672,37 @@ def count_earthquakes(start_date,
     State('data_table', 'derived_virtual_data'),
     State('projection_dropdown', 'value'),
     State('phi_slider','value'),
-    State('visualizer_output', 'width'),
-    State('visualizer_output', 'height'),
+    Input('visualizer_dimensions', 'data'),
     Input('viz_button', 'n_clicks'),
     prevent_initial_call = True
 )
 def update_visualizer(data,
                       projection,
                       phi,
-                      width,
-                      height,
+                      dimensions,
                       n_clicks):
+    # Extract dimensions with fallbacks
+    if dimensions and isinstance(dimensions, dict):
+        width = dimensions.get('width')
+        height = dimensions.get('height')
+    else:
+        width = None
+        height = None
+
+    # Use fallback dimensions if capture failed
+    if width is None or width <= 0:
+        width = 1200  # Fallback width
+    if height is None or height <= 0:
+        height = 600  # Fallback height
+
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True)
     dv = DataVisualizer(df)
     spec = dv.create_chart(
         width=width,
-        height=400,
-        projection=projection
+        height=height,
+        projection=projection,
+        phi=phi
     ).to_dict()
     return dvc.Vega(
         id='map',
