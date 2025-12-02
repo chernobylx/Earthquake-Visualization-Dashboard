@@ -1,14 +1,15 @@
 #layout{
     background-color: rgb(0,0,63);
-    height: 100vh;
+    height: 200vh;
     width: 100vw;
     color: rgb(80, 80, 215);
     font-family: monospace;
     display: grid;
-    grid-template-columns: 1vh 1fr 1fr 1vh;
-    grid-template-rows: 1vh 1fr 1vh;
+    grid-template-columns: 1vw 49vw 49vw 1vw;
+    grid-template-rows: 1vh 99vh  99vh 1vh;
     grid-template-areas:    '.  header  header  .'
-                            '.  loader  viz     .'
+                            '.  loader  loader     .'
+                            '.  viz       viz       .'
                             '.  .       .       .';
 
     row-gap: 10px;
