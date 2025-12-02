@@ -4,7 +4,7 @@ import altair as alt
 from vega_datasets import data
 from DataLoader import COL_TYPES
 
-
+alt.data_transformers.disable_max_rows()
 class DataVisualizer:
     def __init__(self, df: pd.DataFrame):
         assert isinstance(df, pd.DataFrame), "Input must be a pandas DataFrame"
