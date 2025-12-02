@@ -445,7 +445,7 @@ def build_map_colors_widget(input):
     widgets = []
     widgets.append(html.H5('Background:'))
     widgets.append(dcc.Input(
-        value='darkgrey',
+        value='rgb(80,80,120)',
         id='map_background',
         className='text_input'
     ))
