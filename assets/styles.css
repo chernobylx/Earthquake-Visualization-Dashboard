@@ -2,7 +2,7 @@
     background-color: rgb(0,0,63);
     height: auto;
     width: 100vw;
-    color: rgb(80, 80, 215);
+    color: rgb(148, 148, 239);
     font-family: monospace;
     display: grid;
     grid-template-columns: 1vw auto auto 1vw;
@@ -176,6 +176,12 @@
 
 #visualizer_output{
     min-height: 95vh;
+    display: grid;
+    grid-template-columns: 1vw auto 1vw;
+    grid-template-areas: '.... chart ....';
+}
+#map{
+    grid-area: chart;
 }
 
 #data_table{
