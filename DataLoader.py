@@ -8,17 +8,19 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 #Datetime format for the project
-DT_FORMAT = "%y-%m-%d %H:%M:%S"
+DT_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 #columns and their types expected by the datavisuzlizer
-COL_TYPES = {
+COL_TYPES = {'place': 'object',
+            'time': 'datetime64[ns, UTC]',
             'lat': 'float64',
             'lon': 'float64',
             'mag': 'float64',
             'sig': 'int64',
             'depth': 'float64',
-            'time': 'datetime64[ns, UTC]',
             'tsunami': 'bool',
+            'cdi': 'float64',
+            'alert': 'object',
 }
 #A custom error class for validating GeoJSONRequestParams
 class InvalidParamError(Exception):

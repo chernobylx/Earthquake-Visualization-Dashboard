@@ -1,0 +1,195 @@
+#layout{
+    background-color: rgb(0,0,63);
+    height: auto;
+    width: 100vw;
+    color: rgb(148, 148, 239);
+    font-family: monospace;
+    display: grid;
+    grid-template-columns: 1vw auto auto 1vw;
+    grid-template-rows: 1vh auto  auto 1vh;
+    grid-template-areas:    '.  header  header  .'
+                            '.  loader  loader     .'
+                            '.  viz       viz       .'
+                            '.  .       .       .';
+
+    row-gap: 10px;
+    column-gap: 10px;
+}
+.dashboard {
+    background-color: l*rgb(0,0,88);
+    height: auto;
+    display: grid;
+    grid-template-columns: 1vw 1fr 1vw;
+    grid-template-rows:  1vh auto auto 1vh;
+    row-gap: 1vh;
+    column-gap: 1vw;
+    grid-template-areas:    '.    .         .'
+                            '.    ctrl      .'
+                            '.    output    .'
+                            '.    .         .';
+}
+.dashboard:hover{
+    background-color: rgb(0,44,88);
+}
+
+#loader {
+    grid-area: loader;
+    grid-template-columns:  1vw     1fr    1fr    1vw;
+    grid-template-rows:     1vh 1fr 1vh;
+    grid-template-areas:    '...... ...... ...... ......'
+                            '...... ctrl   output ......'
+                            '...... ...... ...... ......';
+}
+
+#visualizer {
+    grid-area: viz;
+} 
+
+.control-pannel{
+    grid-area: ctrl;
+    background-color: rgb(0,0,114);
+    height: auto;
+    display: grid;
+    grid-template-columns: 1vh repeat(4, 1fr) 1vh;
+    grid-template-rows: 1vh repeat(2, 1fr) 1vh;
+    grid-template-areas:    '.  .   .   .   .   .'
+                            '.  w1  w2  w3  w4  .'
+                            '.  w5  w6  w7  w8  .'
+                            '.  .   .   .   .   .';
+    column-gap: 5px;
+    row-gap: 5px;
+}
+.control-pannel:hover{
+    background-color: rgb(0, 57, 114);
+}
+
+.control-pannel >:nth-child(1){
+    grid-area: w1;
+}
+.control-pannel >:nth-child(2){
+    grid-area: w2;
+}
+.control-pannel >:nth-child(3){
+    grid-area: w3;
+}
+.control-pannel >:nth-child(4){
+    grid-area: w4;
+}
+.control-pannel >:nth-child(5){
+    grid-area: w5;
+}
+.control-pannel >:nth-child(6){
+    grid-area: w6;
+}
+.control-pannel >:nth-child(7){
+    grid-area: w7;
+}
+.control-pannel >:nth-child(8){
+    grid-area: w8;
+}
+
+
+.widget{
+    background-color: darkblue;
+}
+.widget:hover{
+    background-color: rgb(0,70,139);
+}
+
+.button-widget{
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr;
+}
+.button{
+    color: rgb(108, 108, 224);
+    background-color: darkblue;
+}
+.button:hover{
+    background-color: rgb(0,70,139);
+}
+
+.slider-widget{
+    display: grid;
+    grid-template-columns: 20px auto;
+}
+
+.dropdown-widget{
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+}
+/* Main dropdown container */
+.dropdown {
+    max-width: 50%;
+    font-size: 10px;
+    height: 20px;
+}
+
+/* Target the control div inside the dropdown - this is the key element */
+.dropdown .Select-control {
+    height: 20px !important;
+    min-height: 20px !important;
+    max-height: 20px !important;
+}
+
+/* Target the value container and input */
+.dropdown .Select-value,
+.dropdown .Select-input {
+    line-height: 18px !important;
+    height: 18px !important;
+}
+
+/* Ensure placeholder and single value text aligns properly */
+.dropdown .Select-placeholder,
+.dropdown .Select-value-label {
+    line-height: 18px !important;
+}
+
+/* Also target the arrow/indicator container */
+.dropdown .Select-arrow-zone {
+    height: 20px !important;
+}
+
+#projection_widget{
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.text-widget{
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+}
+.text_input{
+    height:25%;
+    width: 75%
+}
+.dashboard-output{
+    grid-area: output;
+    background-color: darkblue;
+    display: grid;
+    min-height: 20vh;
+    grid-template-columns: 1vh 1fr 1vh;
+    grid-template-rows: 1vh 1fr 1vh;
+}
+.dashboard-output:hover{
+    background-color: rgb(0,70,139);
+}
+
+#visualizer_output{
+    min-height: 95vh;
+    display: grid;
+    grid-template-columns: 1vw auto 1vw;
+    grid-template-areas: '.... chart ....';
+}
+#map{
+    grid-area: chart;
+}
+
+#data_table{
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner input:not([type=radio]):not([type=checkbox]){
+    color:rgb(76, 76, 238)!important;
+}
+
