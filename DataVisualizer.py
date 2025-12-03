@@ -86,10 +86,24 @@ class DataVisualizer:
 
             selectors[var] = alt.selection_interval(name = var + '_brush')
             if var == 'time':
+                day = 24*60*60*1000
+                time_range = self.df['time'].max() - self.df['time'].min()
+                format = '%Y'
+                tool_tip = 'year(time):T'
+                if time_range < timedelta(days = 1000):
+                    format = '%Y-%m'
+                    tool_tip = 'yearmonth(time)'
+                elif time_range < timedelta(days = 100):
+                    format = '%Y-%m-%d'
+                    tool_tip = 'yearmonthday(time)'
+
+                n_days = int(time_range / timedelta(days=1))
+                step = int(n_days/12) * day
                 x = alt.X('time:T',
-                        timeUnit = 'year',
-                        axis = alt.Axis(format = '%Y'),
-                        title = None)
+                        axis = alt.Axis(format = format),
+                        bin = alt.BinParams(step = step),
+                        title = 'Date')
+                    
                 type = ':T'
 
             else:
