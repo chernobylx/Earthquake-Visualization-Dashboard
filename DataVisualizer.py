@@ -3,7 +3,7 @@ import geopandas as gpd
 import altair as alt
 from vega_datasets import data
 from DataLoader import COL_TYPES
-
+from datetime import timedelta
 alt.data_transformers.disable_max_rows()
 class DataVisualizer:
     def __init__(self, df: pd.DataFrame):
@@ -20,13 +20,24 @@ class DataVisualizer:
 
     def create_heatmap(self, filters, width, height, x_var='time', y_var='depth', color_var='max(mag)'):
         day = 24*60*60*1000
+        time_range = self.df['time'].max() - self.df['time'].min()
+        format = '%Y'
+        tool_tip = 'year(time):T'
+        if time_range < timedelta(days = 1000):
+            format = '%Y-%m'
+            tool_tip = 'yearmonth(time)'
+        elif time_range < timedelta(days = 100):
+            format = '%Y-%m-%d'
+            tool_tip = 'yearmonthday(time)'
 
+        n_days = int(time_range / timedelta(days=1))
+        step = int(n_days/12) * day
         if x_var == 'time':
             X = alt.X('time:T',
-                      axis = alt.Axis(format = '%Y'),
-                      bin = alt.BinParams(step = 365 * day),
+                      axis = alt.Axis(format = format),
+                      bin = alt.BinParams(step = step),
                       title = 'Date')
-            X_tooltip = alt.Tooltip('year(time):T', title='Time')
+            X_tooltip = alt.Tooltip(tool_tip, title='Time')
         else:
             X = alt.X(x_var+':Q',
                       axis = alt.Axis(),
