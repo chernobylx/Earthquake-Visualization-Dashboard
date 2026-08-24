@@ -1,10 +1,12 @@
+import os
+
 import dash
-from dash import Dash, html, dcc, Input, Output
+from dash import Dash, Input, Output, dcc, html
 
 app = Dash(__name__, use_pages=True, suppress_callback_exceptions=True)
 
 app.layout = html.Div([
-    html.H1('Eearthquake Visualization Dashboard'),
+    html.H1('Earthquake Visualization Dashboard'),
     html.Div([
         html.Div(
             dcc.Link(f"{page['name']} - {page['path']}", href=page["relative_path"])
@@ -45,4 +47,4 @@ app.clientside_callback(
 )
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=os.environ.get('DASH_DEBUG', '').lower() in ('1', 'true'))

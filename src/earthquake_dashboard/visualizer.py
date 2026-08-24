@@ -1,10 +1,15 @@
-import pandas as pd
-import geopandas as gpd
-import altair as alt
-from vega_datasets import data
-from DataLoader import COL_TYPES
 from datetime import timedelta
+
+import altair as alt
+import pandas as pd
+from vega_datasets import data
+
+from earthquake_dashboard.data_loader import COL_TYPES
+
 alt.data_transformers.disable_max_rows()
+
+
+
 class DataVisualizer:
     def __init__(self, df: pd.DataFrame):
         assert isinstance(df, pd.DataFrame), "Input must be a pandas DataFrame"
@@ -89,13 +94,10 @@ class DataVisualizer:
                 day = 24*60*60*1000
                 time_range = self.df['time'].max() - self.df['time'].min()
                 format = '%Y'
-                tool_tip = 'year(time):T'
                 if time_range < timedelta(days = 1000):
                     format = '%Y-%m'
-                    tool_tip = 'yearmonth(time)'
                 elif time_range < timedelta(days = 100):
                     format = '%Y-%m-%d'
-                    tool_tip = 'yearmonthday(time)'
 
                 n_days = int(time_range / timedelta(days=1))
                 step = int(n_days/12) * day
@@ -126,12 +128,14 @@ class DataVisualizer:
                 )
         return hists, selectors
 
-    def create_map(self, 
-                   map_fill: str = 'red', 
-                   map_stroke: str = 'blue', 
-                   map_width: int = 800, 
-                   map_height: int = 600, 
-                   Projection = alt.Projection(type = 'equalEarth')):
+    def create_map(self,
+                   map_fill: str = 'red',
+                   map_stroke: str = 'blue',
+                   map_width: int = 800,
+                   map_height: int = 600,
+                   Projection = None):
+        if Projection is None:
+            Projection = alt.Projection(type = 'equalEarth')
         topo = alt.topo_feature(data.world_110m.url, 'countries')
         earth = alt.Chart(topo).mark_geoshape(
             fill = map_fill,
@@ -153,9 +157,11 @@ class DataVisualizer:
                      map_fill = 'darkgrey', map_stroke = 'lightgrey', background = 'darkgrey',
                      color_var = 'sig', color_scheme = 'magma',
                      opacity_var = 'mag',
-                     size_var = 'mag', size_range = [10, 200],
-                     filter_vars = ['time', 'mag', 'sig', 'depth', 'lon', 'lat'],
+                     size_var = 'mag', size_range = (10, 200),
+                     filter_vars = ('time', 'mag', 'sig', 'depth', 'lon', 'lat'),
                      heatmap_x = 'time', heatmap_y = 'depth', heatmap_color = 'max(mag)'):
+        size_range = list(size_range)
+        filter_vars = list(filter_vars)
         width *= .75
         height *= .8
         map_width = int(.6 * width)

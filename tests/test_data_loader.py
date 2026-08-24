@@ -1,7 +1,28 @@
-from DataLoader import RequestParams as RP
-from DataLoader import InvalidParamError, DT_FORMAT, DataLoader, COL_TYPES
-from datetime import datetime, timedelta
+from datetime import datetime
+
+import pytest
+import requests
 from pytest import raises
+
+from earthquake_dashboard.data_loader import (
+    COL_TYPES,
+    DT_FORMAT,
+    DataLoader,
+    InvalidParamError,
+)
+from earthquake_dashboard.data_loader import RequestParams as RP
+
+
+def usgs_reachable() -> bool:
+    try:
+        requests.head(DataLoader.url, timeout=10)
+        return True
+    except requests.exceptions.RequestException:
+        return False
+
+
+# The DataLoader tests query the live USGS API; skip them when it is unreachable.
+needs_usgs = pytest.mark.skipif(not usgs_reachable(), reason="USGS API unreachable")
 
 starttime = datetime(year=2025,month=11,day=20)
 endtime = datetime(year=2025,month=11,day=21)
@@ -28,6 +49,7 @@ class TestRequestParams:
         
 
 
+@needs_usgs
 class TestDataLoader:
     #test DataLoader.count 
     def test_count(self): 

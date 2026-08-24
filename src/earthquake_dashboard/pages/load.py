@@ -1,134 +1,16 @@
+from datetime import date, datetime, timedelta
+
 import dash
 import dash_vega_components as dvc
-from dash import html, dcc, callback, Input, Output, State, dash_table
-from dash.exceptions import PreventUpdate
-from datetime import datetime, date, timedelta
-from DataLoader import DataLoader, RequestParams, DT_FORMAT
-from DataVisualizer import DataVisualizer
 import pandas as pd
+from dash import Input, Output, State, callback, dash_table, dcc, html
+from dash.exceptions import PreventUpdate
+
+from earthquake_dashboard.data_loader import DT_FORMAT, DataLoader, RequestParams
+from earthquake_dashboard.visualizer import DataVisualizer
+
 dash.register_page(__name__)
 
-layout = html.Div([
-    html.Div(
-    [
-        html.H2('Data Loader'),
-        html.Div(
-        [
-            html.H3('Date Range'),
-            dcc.DatePickerRange(
-                id = 'date_range',
-                min_date_allowed=date(1900,1,1),
-                max_date_allowed=date.today()+timedelta(days=1),
-                initial_visible_month=date.today()-timedelta(days=30),
-                start_date=date.today()-timedelta(days=30),
-                end_date=date.today()+timedelta(days=1)
-            ),
-        ], className='widget'),
-
-        html.Div(
-        [
-            html.H3('Magnitude Range'),
-            dcc.RangeSlider(
-                min=0,
-                max=10,
-                step=.1,
-                value=[6,9.1],
-                marks = None,
-                tooltip = {"placement": "bottom", "always_visible": True},
-                id = 'mag_range',
-                className='slider'
-            )
-        ],
-            id = 'mag-range',
-            className='widget'
-        ),
-
-        html.Div(
-        [
-            html.Button('Count', id='count_button', n_clicks =0),
-            html.Button('Load', id='load_button', n_clicks = 0),
-            html.Button('Clear', id='clear_button', n_clicks = 0)
-        ],
-        id = 'buttons',
-        className = 'widget'
-        ),
-
-        html.Div(
-        [
-            'Click Count'
-        ],
-        id='count_div',
-        )
-
-    ],
-    id = 'data-loader', className='control-pannel'),
-    html.Div(
-    [
-        dash_table.DataTable(
-            id = 'data_table',
-            page_size=10,
-            filter_action = 'native',
-            sort_action = 'native'),
-    ], id = 'data_table_div'
-    ),
-
-    html.Div(
-    [
-        html.H2('Visualizer'),
-        #Visualizer Control Pannel
-        html.Div(
-        [
-            #Projection Widget
-            html.Div(
-            [
-                html.H3('Projection:'),
-                dcc.Dropdown(
-                    ['equalEarth', 'mercator', 'azimuthalEqualArea'], 
-                    value = 'equalEarth', 
-                    id = 'projection_dd'
-                )
-            ], id = 'projection_widget', className = 'widget'
-            ),
-            #Map Control Widget
-            html.Div(
-            [
-                html.H3('Map Controls:'),
-                html.Div(
-                [
-                    html.H4('Rotate:'),
-                    html.H5('Y:'),
-                    dcc.Slider(min = -179.9,
-                               max = 179.9,
-                               step=10,
-                               value=0,
-                               marks = None,
-                               tooltip = {"placement": "bottom", "always_visible": True},
-                               id = 'phi',
-                               className='slider'),
-                    html.H5('X:'),
-                    dcc.Slider(min = -89.9,
-                               max = 89.9,
-                               step=10,
-                               value=0,
-                               marks = None,
-                               tooltip = {"placement": "bottom", "always_visible": True},
-                               id = 'theta',
-                               className='slider')
-                ]
-                ) 
-            ], id = 'map_control_widget', className = 'widget'
-            ),
-
-            html.Button('Visualize', id = 'viz_button', n_clicks = 0),
-        ], id = 'viz_control_pannel', className='control-pannel'
-        ),
-        html.Div([],
-                 id = 'visualizer_output')
-    ],
-    id = 'visualizer_div'
-    ),
-
-])
 layout = html.Div(children=[
     html.Div(['Hidden Div'], id='hidden_div', style={'display': 'none'}),
     html.Div(children=['Page'], id='layout')
@@ -150,7 +32,7 @@ def build_page(input):
 )
 def build_loader(input):
     loader = []
-    loader.append(html.Div(['Control Pannel'], id = 'loader_control_pannel', className='control-pannel'))
+    loader.append(html.Div(['Control Panel'], id = 'loader_control_panel', className='control-panel'))
     loader.append(html.Div(['Data Table'], id = 'loader_output', className='dashboard-output'))
     return loader
 
@@ -197,24 +79,24 @@ def build_loader_output(input):
 
 
 @callback(
-        Output('loader_control_pannel', 'children'),
+        Output('loader_control_panel', 'children'),
         Input('loader', 'children')
 )
-def build_loader_control_pannel(input):
-    control_pannel = []
-    control_pannel.append(html.Div(['Date'], id = 'date_range', className='widget date-widget'))
-    control_pannel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
-    control_pannel.append(html.Div(['Significance'], id='sig_range', className='widget slider-widget'))
-    control_pannel.append(html.Div(['Depth'], id='depth_range', className='widget slider-widget'))
-    control_pannel.append(html.Div(['Latitude'], id='latitude_range', className='widget slider-widget'))
-    control_pannel.append(html.Div(['Longitude'], id='longitude_range', className='widget slider-widget'))
-    control_pannel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
-    control_pannel.append(html.Div(['EQ Count'], id='count_output', className='widget output-widget'))
-    return control_pannel
+def build_loader_control_panel(input):
+    control_panel = []
+    control_panel.append(html.Div(['Date'], id = 'date_range', className='widget date-widget'))
+    control_panel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
+    control_panel.append(html.Div(['Significance'], id='sig_range', className='widget slider-widget'))
+    control_panel.append(html.Div(['Depth'], id='depth_range', className='widget slider-widget'))
+    control_panel.append(html.Div(['Latitude'], id='latitude_range', className='widget slider-widget'))
+    control_panel.append(html.Div(['Longitude'], id='longitude_range', className='widget slider-widget'))
+    control_panel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
+    control_panel.append(html.Div(['EQ Count'], id='count_output', className='widget output-widget'))
+    return control_panel
 
 @callback(
     Output('date_range', 'children'),
-    Input('loader_control_pannel', 'children')
+    Input('loader_control_panel', 'children')
 )
 def build_date_range(input):
     widget = []
@@ -230,7 +112,7 @@ def build_date_range(input):
 
 @callback(
     Output('mag_range', 'children'),
-    Input('loader_control_pannel', 'children')
+    Input('loader_control_panel', 'children')
 )
 def build_mag_range(input):
     widget = []
@@ -251,7 +133,7 @@ def build_mag_range(input):
 
 @callback(
     Output('sig_range', 'children'),
-    Input('loader_control_pannel', 'children')
+    Input('loader_control_panel', 'children')
 )
 def build_sig_range(input):
     widget = []
@@ -272,7 +154,7 @@ def build_sig_range(input):
 
 @callback(
     Output('depth_range', 'children'),
-    Input('loader_control_pannel', 'children')
+    Input('loader_control_panel', 'children')
 )
 def build_depth_range(input):
     widget = []
@@ -293,7 +175,7 @@ def build_depth_range(input):
 
 @callback(
     Output('latitude_range', 'children'),
-    Input('loader_control_pannel', 'children')
+    Input('loader_control_panel', 'children')
 )
 def build_latitude_range(input):
     widget = []
@@ -314,7 +196,7 @@ def build_latitude_range(input):
 
 @callback(
     Output('longitude_range', 'children'),
-    Input('loader_control_pannel', 'children')
+    Input('loader_control_panel', 'children')
 )
 def build_longitude_range(input):
     widget = []
@@ -338,7 +220,7 @@ def build_longitude_range(input):
 
 @callback(
     Output('loader_button_widget', 'children'),
-    Input('loader_control_pannel', 'children')
+    Input('loader_control_panel', 'children')
 )
 def build_loader_buttons(input):
     widget = []
@@ -354,32 +236,32 @@ def build_loader_buttons(input):
 )
 def build_visualizer(input):
     visualizer = []
-    visualizer.append(html.Div(['Control Pannel'], id = 'visualizer_control_pannel', className='control-pannel'))
+    visualizer.append(html.Div(['Control Panel'], id = 'visualizer_control_panel', className='control-panel'))
     visualizer.append(html.Div(['Visualization'], id = 'visualizer_output', className='dashboard-output visualization'))
     visualizer.append(dcc.Store(id='visualizer_dimensions', data={'width': None, 'height': None}))
     return visualizer
 
 @callback(
-        Output('visualizer_control_pannel', 'children'),
+        Output('visualizer_control_panel', 'children'),
         Input('visualizer', 'children')
 )
-def build_visualizer_control_pannel(input):
-    control_pannel = []
-    control_pannel.append(html.Div(['Projection'], id='projection_widget', className='widget dropdown-widget'))
-    control_pannel.append(html.Div(['Map Tools'], id='map_tools_widget', className='widget slider-widget'))
-    control_pannel.append(html.Div(['Map Colors'], id='map_colors_widget', className='widget text-widget'))
-    control_pannel.append(html.Div(['Map Aesthetics'], id='map_aesthetics_widget', className='widget dropdown-widget'))
-    control_pannel.append(html.Div(['Heatmap Aesthetics'], id='heatmap_aesthetics_widget', className='widget dropdown-widget'))
-    control_pannel.append(html.Div(['Filters'], id='filter_widget', className='widget dropdown-widget'))
+def build_visualizer_control_panel(input):
+    control_panel = []
+    control_panel.append(html.Div(['Projection'], id='projection_widget', className='widget dropdown-widget'))
+    control_panel.append(html.Div(['Map Tools'], id='map_tools_widget', className='widget slider-widget'))
+    control_panel.append(html.Div(['Map Colors'], id='map_colors_widget', className='widget text-widget'))
+    control_panel.append(html.Div(['Map Aesthetics'], id='map_aesthetics_widget', className='widget dropdown-widget'))
+    control_panel.append(html.Div(['Heatmap Aesthetics'], id='heatmap_aesthetics_widget', className='widget dropdown-widget'))
+    control_panel.append(html.Div(['Filters'], id='filter_widget', className='widget dropdown-widget'))
     for i in range(7,8):
-        control_pannel.append(html.Div([f'Widget{i}'], id=f'visualizer_widget{i}', className='widget'))
+        control_panel.append(html.Div([f'Widget{i}'], id=f'visualizer_widget{i}', className='widget'))
 
-    control_pannel.append(html.Div(['Viz Buttons'], id='viz_button_widget', className='widget button-widget'))
-    return control_pannel
+    control_panel.append(html.Div(['Viz Buttons'], id='viz_button_widget', className='widget button-widget'))
+    return control_panel
 
 @callback(
         Output('projection_widget', 'children'),
-        Input('visualizer_control_pannel', 'children')
+        Input('visualizer_control_panel', 'children')
 )
 def build_projection_widget(input):
     widget = []
@@ -397,7 +279,7 @@ def build_projection_widget(input):
 
 @callback(
         Output('map_tools_widget', 'children'),
-        Input('visualizer_control_pannel', 'children')
+        Input('visualizer_control_panel', 'children')
 )
 def build_map_tools_widget(input):
     widget = []
@@ -439,7 +321,7 @@ def build_map_tools_widget(input):
 
 @callback(
         Output('map_colors_widget', 'children'),
-        Input('visualizer_control_pannel', 'children')
+        Input('visualizer_control_panel', 'children')
 )
 def build_map_colors_widget(input):
     widgets = []
@@ -554,7 +436,7 @@ def build_filter_widget(data):
     return widget
 @callback(
     Output('viz_button_widget', 'children'),
-    Input('visualizer_control_pannel', 'children')
+    Input('visualizer_control_panel', 'children')
 )
 def build_viz_button_widget(input):
     widget = []

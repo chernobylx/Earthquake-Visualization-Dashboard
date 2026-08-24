@@ -45,7 +45,7 @@
     grid-area: viz;
 } 
 
-.control-pannel{
+.control-panel{
     grid-area: ctrl;
     background-color: rgb(0,0,114);
     height: auto;
@@ -59,32 +59,32 @@
     column-gap: 5px;
     row-gap: 5px;
 }
-.control-pannel:hover{
+.control-panel:hover{
     background-color: rgb(0, 57, 114);
 }
 
-.control-pannel >:nth-child(1){
+.control-panel >:nth-child(1){
     grid-area: w1;
 }
-.control-pannel >:nth-child(2){
+.control-panel >:nth-child(2){
     grid-area: w2;
 }
-.control-pannel >:nth-child(3){
+.control-panel >:nth-child(3){
     grid-area: w3;
 }
-.control-pannel >:nth-child(4){
+.control-panel >:nth-child(4){
     grid-area: w4;
 }
-.control-pannel >:nth-child(5){
+.control-panel >:nth-child(5){
     grid-area: w5;
 }
-.control-pannel >:nth-child(6){
+.control-panel >:nth-child(6){
     grid-area: w6;
 }
-.control-pannel >:nth-child(7){
+.control-panel >:nth-child(7){
     grid-area: w7;
 }
-.control-pannel >:nth-child(8){
+.control-panel >:nth-child(8){
     grid-area: w8;
 }
 
