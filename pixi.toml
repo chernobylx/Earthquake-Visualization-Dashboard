@@ -1,0 +1,38 @@
+[workspace]
+name = "earthquake-visualization-dashboard"
+version = "1.0.0"
+description = "Interactive dashboard for visualizing earthquake data from the USGS Earthquake Catalog API"
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.11"
+# Web app
+dash = ">=2.14"
+# Data handling — pandas pinned <3: dtype validation assumes pandas 2's object string dtype
+pandas = ">=2,<3"
+geopandas = "*"
+requests = "*"
+# Visualization
+altair = ">=5"
+vega_datasets = "*"
+
+[pypi-dependencies]
+dash-vega-components = "*"
+earthquake_dashboard = { path = ".", editable = true }
+
+[feature.dev.dependencies]
+ruff = "*"
+pytest = "*"
+ipykernel = "*"
+jupyter = "*"
+
+[tasks]
+app    = "python -m earthquake_dashboard.app"
+lint   = "ruff check src tests"
+format = "ruff format src tests"
+test   = "pytest tests/ -v --tb=short"
+check  = { depends-on = ["lint", "test"] }
+
+[environments]
+default = { features = ["dev"], solve-group = "default" }
