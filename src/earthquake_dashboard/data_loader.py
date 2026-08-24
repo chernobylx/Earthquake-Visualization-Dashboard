@@ -1,12 +1,13 @@
-import pandas as pd
-from io import StringIO
-import requests
 import json
-import geopandas as gpd
-from typing import Union
 from dataclasses import dataclass
 from datetime import datetime
+from io import StringIO
 from typing import Optional
+
+import geopandas as gpd
+import pandas as pd
+import requests
+
 #Datetime format for the project
 DT_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -71,7 +72,7 @@ class RequestParams:
         try:
             assert self.format == 'geojson', f'format must be "geojson" not "{self.format}"'
             
-            if (self.starttime != None) and (self.endtime != None):
+            if (self.starttime is not None) and (self.endtime is not None):
                 start = datetime.strptime(self.starttime, DT_FORMAT)
                 end = datetime.strptime(self.endtime, DT_FORMAT)
                 assert start < end, "starttime must be before endtime"
@@ -79,11 +80,11 @@ class RequestParams:
 
             #TODO: if min{param} and max{param} assert min{param} < max{param}
             for param in ['latitude', 'longitude', 'magnitude', 'sig', 'depth']:
-                if (self.__getattribute__(f'min{param}') != None) and (self.__getattribute__(f'max{param}') != None):
+                if (self.__getattribute__(f'min{param}') is not None) and (self.__getattribute__(f'max{param}') is not None):
                    assert self.__getattribute__(f'min{param}') < self.__getattribute__(f'max{param}'), f'min{param} must be less than max{param}'
                    
         except AssertionError as e:
-            raise InvalidParamError(str(e))
+            raise InvalidParamError(str(e)) from e
         else:
             return True
 
@@ -106,7 +107,7 @@ class DataLoader:
             if self.response.status_code != 200:
                 raise Exception(f'HTTP Request Error: {self.response.status_code}')
         except Exception as e:
-            raise Exception(str(e))
+            raise Exception(str(e)) from e
         else:
             self.body = json.loads(self.response.text)
             return self.body['count']
@@ -119,7 +120,7 @@ class DataLoader:
             if self.response.status_code != 200:
                 raise Exception(f"HTTP Request Error: {self.response.status_code}")
         except Exception as e:
-            raise Exception(str(e))
+            raise Exception(str(e)) from e
         else:
             self.gdf = gpd.read_file(StringIO(self.response.text))
             return self.gdf

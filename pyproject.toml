@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "earthquake_dashboard"
+version = "1.0.0"
+description = "Interactive dashboard for visualizing earthquake data from the USGS Earthquake Catalog API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dash>=2.14",
+    "dash-vega-components",
+    "pandas>=2,<3",  # dtype validation in COL_TYPES assumes pandas 2's object string dtype
+    "geopandas",
+    "requests",
+    "altair>=5",
+    "vega_datasets",
+]
+
+[project.optional-dependencies]
+dev = ["ruff", "pytest"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/earthquake_dashboard"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+# E501: long Dash layout/callback lines are readable as-is
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

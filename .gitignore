@@ -1,4 +1,28 @@
-*.csv
+# pixi environment (pixi.lock IS committed — it's the reproducibility guarantee)
+.pixi/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.env
+
+# Downloaded data — regenerate via the Data Loader page or DataLoader API
+data/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Editor & OS
+.vscode/
+.idea/
+.DS_Store
+
+# Scratch work
 scratch*
-__pycache__
-.pytest_cache
