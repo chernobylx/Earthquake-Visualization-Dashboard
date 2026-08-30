@@ -84,14 +84,15 @@ def build_loader_output(input):
 )
 def build_loader_control_panel(input):
     control_panel = []
-    control_panel.append(html.Div(['Date'], id = 'date_range', className='widget date-widget'))
+    control_panel.append(html.Div(['Date Range'], id = 'date_range', className='widget date-widget'))
     control_panel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
     control_panel.append(html.Div(['Significance'], id='sig_range', className='widget slider-widget'))
     control_panel.append(html.Div(['Depth'], id='depth_range', className='widget slider-widget'))
     control_panel.append(html.Div(['Latitude'], id='latitude_range', className='widget slider-widget'))
     control_panel.append(html.Div(['Longitude'], id='longitude_range', className='widget slider-widget'))
-    control_panel.append(html.Div(['Buttons'], id='loader_button_widget', className='widget button-widget'))
-    control_panel.append(html.Div(['EQ Count'], id='count_output', className='widget output-widget'))
+    control_panel.append(html.Div(['Query Buttons'], id='loader_button_widget', className='widget button-widget'))
+    control_panel.append(html.Div([html.H5('Matching Events'), 'Press Preview Count'],
+                                  id='count_output', className='widget output-widget'))
     return control_panel
 
 @callback(
@@ -99,15 +100,24 @@ def build_loader_control_panel(input):
     Input('loader_control_panel', 'children')
 )
 def build_date_range(input):
+    # h4 is the panel title, h5 a widget heading. This tile is plain block flow,
+    # so it is the only loader slot that can carry the panel title without
+    # adding a ninth child and shifting every grid area.
     widget = []
-    widget.append(html.H4('Date Range'))
+    widget.append(html.H4('Query USGS'))
+    widget.append(html.H5('Date Range (UTC)'))
     widget.append(dcc.DatePickerRange(
         start_date=date.today()-timedelta(days=30),
         end_date=date.today()+timedelta(days=1),
+        start_date_placeholder_text='From',
+        end_date_placeholder_text='Up To',
         stay_open_on_select=False,
         id='date_range_picker',
         className='date_range_picker')
     )
+    widget.append(html.Div(
+        'Both dates read as 00:00 UTC, so the end date itself is not included.',
+        className='widget-help'))
     return widget
 
 @callback(
@@ -116,7 +126,8 @@ def build_date_range(input):
 )
 def build_mag_range(input):
     widget = []
-    widget.append(html.H5('mag:'))
+    widget.append(html.H5('Magnitude',
+        title="Filters the event's preferred magnitude, usually moment magnitude."))
     widget.append(
         dcc.RangeSlider(
             min=0,
@@ -124,7 +135,7 @@ def build_mag_range(input):
             step=.1,
             value=[6,9.1],
             marks=None,
-            tooltip={'placement': 'bottom', 'always_visible': True},
+            tooltip={'placement': 'bottom', 'always_visible': True, 'template': 'M {value}'},
             id='mag_range_slider',
             className='slider'
         )
@@ -137,7 +148,8 @@ def build_mag_range(input):
 )
 def build_sig_range(input):
     widget = []
-    widget.append(html.H5('sig:'))
+    widget.append(html.H5('Significance',
+        title='USGS impact score combining magnitude, shaking and felt reports.'))
     widget.append(
         dcc.RangeSlider(
             min=0,
@@ -145,7 +157,7 @@ def build_sig_range(input):
             step=50,
             value=[0, 3000],
             marks=None,
-            tooltip={'placement': 'bottom', 'always_visible': True},
+            tooltip={'placement': 'bottom', 'always_visible': True, 'template': 'sig {value}'},
             id='sig_range_slider',
             className='slider'
         )
@@ -158,7 +170,8 @@ def build_sig_range(input):
 )
 def build_depth_range(input):
     widget = []
-    widget.append(html.H5('depth:'))
+    widget.append(html.H5('Depth',
+        title='Kilometres below sea level; negative values sit above it.'))
     widget.append(
         dcc.RangeSlider(
             min=-100,
@@ -166,7 +179,7 @@ def build_depth_range(input):
             step=25,
             value=[-100, 1000],
             marks=None,
-            tooltip={'placement': 'bottom', 'always_visible': True},
+            tooltip={'placement': 'bottom', 'always_visible': True, 'template': '{value} km'},
             id='depth_range_slider',
             className='slider'
         )
@@ -179,7 +192,8 @@ def build_depth_range(input):
 )
 def build_latitude_range(input):
     widget = []
-    widget.append(html.H5('lat:'))
+    widget.append(html.H5('Latitude',
+        title='South and north edges of the search box; pair it with Longitude.'))
     widget.append(
         dcc.RangeSlider(
             min=-90,
@@ -187,7 +201,7 @@ def build_latitude_range(input):
             step=1,
             value=[-90,90],
             marks=None,
-            tooltip={'placement': 'bottom', 'always_visible': True},
+            tooltip={'placement': 'bottom', 'always_visible': True, 'template': '{value}°'},
             id='latitude_range_slider',
             className='slider'
         )
@@ -200,7 +214,8 @@ def build_latitude_range(input):
 )
 def build_longitude_range(input):
     widget = []
-    widget.append(html.H5('lon:'))
+    widget.append(html.H5('Longitude',
+        title='West and east edges of the box; it cannot cross the date line.'))
     widget.append(
         dcc.RangeSlider(
             min=-180,
@@ -208,7 +223,7 @@ def build_longitude_range(input):
             step=1,
             value=[-180,180],
             marks=None,
-            tooltip={'placement': 'bottom', 'always_visible': True},
+            tooltip={'placement': 'bottom', 'always_visible': True, 'template': '{value}°'},
             id='longitude_range_slider',
             className='slider'
         )
@@ -224,9 +239,14 @@ def build_longitude_range(input):
 )
 def build_loader_buttons(input):
     widget = []
-    widget.append(html.Button('Count', id='count_button', className='button', n_clicks=0))
-    widget.append(html.Button('Load', id='load_button', className='button', n_clicks=0))
-    widget.append(html.Button('Clear', id='clear_button', className='button', n_clicks=0))
+    # No heading here: .button-widget is a three-row grid holding exactly these
+    # three buttons, so a fourth child would spill into an implicit row.
+    widget.append(html.Button('Preview Count', id='count_button', className='button', n_clicks=0,
+        title='Asks USGS how many events match. Downloads nothing.'))
+    widget.append(html.Button('Fetch Data', id='load_button', className='button', n_clicks=0,
+        title='Downloads the matching events, up to the 20,000 record limit.'))
+    widget.append(html.Button('Clear Table', id='clear_button', className='button', n_clicks=0,
+        title='Empties the table and resets the count.'))
 
     return widget
 
@@ -248,15 +268,22 @@ def build_visualizer(input):
 def build_visualizer_control_panel(input):
     control_panel = []
     control_panel.append(html.Div(['Projection'], id='projection_widget', className='widget dropdown-widget'))
-    control_panel.append(html.Div(['Map Tools'], id='map_tools_widget', className='widget slider-widget'))
+    control_panel.append(html.Div(['Globe Orientation'], id='map_tools_widget', className='widget slider-widget'))
     control_panel.append(html.Div(['Map Colors'], id='map_colors_widget', className='widget text-widget'))
-    control_panel.append(html.Div(['Map Aesthetics'], id='map_aesthetics_widget', className='widget dropdown-widget'))
-    control_panel.append(html.Div(['Heatmap Aesthetics'], id='heatmap_aesthetics_widget', className='widget dropdown-widget'))
-    control_panel.append(html.Div(['Filters'], id='filter_widget', className='widget dropdown-widget'))
-    for i in range(7,8):
-        control_panel.append(html.Div([f'Widget{i}'], id=f'visualizer_widget{i}', className='widget'))
+    control_panel.append(html.Div(['Point Encoding'], id='map_aesthetics_widget', className='widget dropdown-widget'))
+    control_panel.append(html.Div(['Heatmap'], id='heatmap_aesthetics_widget', className='widget dropdown-widget'))
+    control_panel.append(html.Div(['Histograms'], id='filter_widget', className='widget dropdown-widget'))
+    # This tile exists to hold grid slot w7: without it the Visualize button
+    # shifts into w7. It now carries the two behaviours nothing else explains.
+    control_panel.append(html.Div([
+        html.H5('How To Read'),
+        html.Div('Drag across the map or any histogram to filter every panel.',
+                 className='widget-help'),
+        html.Div('Nothing redraws until you press Render Chart.',
+                 className='widget-help'),
+    ], id='visualizer_widget7', className='widget'))
 
-    control_panel.append(html.Div(['Viz Buttons'], id='viz_button_widget', className='widget button-widget'))
+    control_panel.append(html.Div(['Render'], id='viz_button_widget', className='widget button-widget'))
     return control_panel
 
 @callback(
@@ -265,13 +292,19 @@ def build_visualizer_control_panel(input):
 )
 def build_projection_widget(input):
     widget = []
-    widget.append(html.H4('Map Projection'))
+    # #projection_widget is overridden to a single column, so an extra child
+    # cannot scramble label/control pairing — the panel title goes here.
+    widget.append(html.H4('Chart Loaded Data'))
+    widget.append(html.H5('Map Projection',
+        title='Mercator clips near the poles and skews when the globe is tilted.'))
     widget.append(
         dcc.Dropdown(
-            options = ['naturalEarth1', 'azimuthalEqualArea', 'mercator'],
+            options = [{'label': 'Natural Earth', 'value': 'naturalEarth1'},
+                       {'label': 'Azimuthal Equal-Area', 'value': 'azimuthalEqualArea'},
+                       {'label': 'Mercator', 'value': 'mercator'}],
             value = 'naturalEarth1',
             id = 'projection_dropdown',
-            className = 'widget dropdown-widget'
+            className = 'dropdown'
         )
     )
 
@@ -283,29 +316,32 @@ def build_projection_widget(input):
 )
 def build_map_tools_widget(input):
     widget = []
-    widget.append(html.H5('Rotate Y:'))
+    widget.append(html.H5('Spin East-West:',
+        title='Drag right and the map centre moves west.'))
     widget.append(dcc.Slider(
         min=-179.9,
         max=179.9,
         step = 1,
         value = 0,
         marks = None,
-        tooltip={'placement': 'bottom', 'always_visible': True},
+        tooltip={'placement': 'bottom', 'always_visible': True, 'template': '{value}°'},
         id='phi_slider',
         className='slider'
     ))
-    widget.append(html.H5('Rotate X:'))
+    widget.append(html.H5('Tilt North-South:',
+        title='Drag right and the map centre moves south.'))
     widget.append(dcc.Slider(
         min=-89.9,
         max=89.9,
         step = 1,
         value = 0,
         marks = None,
-        tooltip={'placement': 'bottom', 'always_visible': True},
+        tooltip={'placement': 'bottom', 'always_visible': True, 'template': '{value}°'},
         id='theta_slider',
         className='slider'
     ))
-    widget.append(html.H5('scale'))
+    widget.append(html.H5('Zoom:',
+        title='Zooms the geography; the panel keeps its size.'))
     widget.append(dcc.Slider(
         min=10,
         max=1000,
@@ -325,19 +361,21 @@ def build_map_tools_widget(input):
 )
 def build_map_colors_widget(input):
     widgets = []
-    widgets.append(html.H5('Background:'))
+    widgets.append(html.H5('Canvas Color:',
+        title='Any CSS colour; tints the whole figure, not just the globe.'))
     widgets.append(dcc.Input(
         value='rgb(80,80,120)',
         id='map_background',
         className='text_input'
     ))
-    widgets.append(html.H5('Fill:'))
+    widgets.append(html.H5('Land Color:'))
     widgets.append(dcc.Input(
         value='#00008d',
         id='map_fill',
         className='text_input'
     ))
-    widgets.append(html.H5('Stroke:'))
+    widgets.append(html.H5('Border Color:',
+        title='Country outlines only; the lat/lon grid keeps its default colour.'))
     widgets.append(dcc.Input(
         value='lightgrey',
         id='map_stroke',
@@ -354,21 +392,22 @@ def build_map_aesthetics_widget(data):
     df = pd.DataFrame(data)
     cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
     widget = []
-    widget.append(html.H5('Size:'))
+    widget.append(html.H5('Point Size:',
+        title='Scales each dot by area, 10 to 200 px.'))
     widget.append(dcc.Dropdown(
         options=cols,
         value = 'mag',
         id='size_dropdown',
         className='dropdown'
     ))
-    widget.append(html.H5('Color:'))
+    widget.append(html.H5('Point Color:'))
     widget.append(dcc.Dropdown(
         options=cols,
         value = 'depth',
         id='color_dropdown',
         className='dropdown'
     ))
-    widget.append(html.H5('Alpha:'))
+    widget.append(html.H5('Point Opacity:'))
     widget.append(dcc.Dropdown(
         options=cols,
         value = 'sig',
@@ -389,23 +428,29 @@ def build_heatmap_aesthetics_widget(data):
         df['time'] = pd.to_datetime(df['time'], utc=True, format='ISO8601')
     cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
     widget = []
-    widget.append(html.H5('X:'))
+    widget.append(html.H5('Bin Across (X):'))
     widget.append(dcc.Dropdown(
         options=cols,
         value = 'time',
         id='x_dropdown',
         className='dropdown'
     ))
-    widget.append(html.H5('Y:'))
+    widget.append(html.H5('Bin Down (Y):',
+        title='Depth flips the axis; time always bins by whole years.'))
     widget.append(dcc.Dropdown(
         options=cols,
         value = 'depth',
         id='y_dropdown',
         className='dropdown'
     ))
-    widget.append(html.H5('Color:'))
+    # 'Cell Metric' rather than a second 'Color:' — this picks the statistic the
+    # cell colour reports, not a column like the map's Point Color.
+    widget.append(html.H5('Cell Metric:',
+        title='The statistic each cell colour reports for the quakes inside it.'))
     widget.append(dcc.Dropdown(
-        options=['max(mag)', 'mag', 'mean(depth)'],
+        options=[{'label': 'Max magnitude', 'value': 'max(mag)'},
+                 {'label': 'Mean depth', 'value': 'mean(depth)'},
+                 {'label': 'Magnitude (unaggregated)', 'value': 'mag'}],
         value = 'max(mag)',
         id='heatmap_color_dropdown',
         className='dropdown'
@@ -424,11 +469,13 @@ def build_filter_widget(data):
         df['time'] = pd.to_datetime(df['time'], utc=True, format='ISO8601')
     cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
     widget = []
-    widget.append(html.H5('Filters:'))
+    widget.append(html.H5('Histograms:',
+        title='Each variable you pick gets a histogram you can drag to filter.'))
     widget.append(dcc.Dropdown(
         multi=True,
         options=cols,
         value=['time', 'mag', 'depth'],
+        placeholder='Pick variables to brush',
         id='filter_dropdown',
         className='dropdown multi-dropdown'
     ))
@@ -440,7 +487,9 @@ def build_filter_widget(data):
 )
 def build_viz_button_widget(input):
     widget = []
-    widget.append(html.Button('Visualize', id='viz_button', className='button'))
+    widget.append(html.H5('Apply Settings',
+        title='Every control above is read fresh at the moment you click.'))
+    widget.append(html.Button('Render Chart', id='viz_button', className='button'))
     return widget
 
 @callback(
@@ -502,7 +551,8 @@ def clear_output(n_clicks):
     if not n_clicks or n_clicks ==0:
         raise PreventUpdate
     else:
-        return pd.DataFrame().to_dict('records'), 'Click Count'
+        return (pd.DataFrame().to_dict('records'),
+                [html.H5('Matching Events'), 'Press Preview Count'])
 
 @callback(
     Output('count_output', 'children', allow_duplicate=True),
@@ -546,7 +596,11 @@ def count_earthquakes(start_date,
                                minlongitude=lonrange[0],
                                maxlongitude=lonrange[1])
         dl = DataLoader(params)
-        return f'Found {dl.count()} earthquakes' 
+        n = dl.count()
+        msg = f'{n:,} events match'
+        if n > 20000:
+            msg = f'{n:,} events match - over the 20,000 limit, narrow your filters'
+        return [html.H5('Matching Events'), msg] 
 
 
 @callback(
