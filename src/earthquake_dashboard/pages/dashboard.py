@@ -601,6 +601,10 @@ def update_visualizer(data,
     if height is None or height <= 0:
         height = 200  # Fallback height
 
+    # This callback also fires when the Store is first created, before any data is loaded.
+    if not data:
+        raise PreventUpdate
+
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], utc=True,format='ISO8601')
     dv = DataVisualizer(df)
