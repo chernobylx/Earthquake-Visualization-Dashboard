@@ -14,7 +14,7 @@ dependencies = [
     "pandas>=2,<3",  # dtype validation in COL_TYPES assumes pandas 2's object string dtype
     "geopandas",
     "requests",
-    "altair>=5",
+    "altair>=5,<6",  # Vega-Lite v6 specs from altair 6 outrun dash-vega-components' bundled v5 renderer
     "vega_datasets",
 ]
 
