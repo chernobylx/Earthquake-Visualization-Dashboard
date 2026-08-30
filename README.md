@@ -63,10 +63,23 @@ pip install -e ".[dev]"
 python -m earthquake_dashboard.app
 ```
 
-Then open <http://127.0.0.1:8050>, go to the **Load** page, choose your query
-parameters, click **Load**, and click **Visualize**.
+Then open <http://127.0.0.1:8050>. The landing page has a quick-start guide; click
+**Launch Dashboard** (or go straight to `/dashboard`) to reach the app itself. There,
+choose your query parameters, click **Count** to preview how many events match,
+**Load** to fetch them, and **Visualize** to build the linked charts.
 
 Set `DASH_DEBUG=1` to run the app with Dash's debug tooling enabled.
+
+## Deployment
+
+The dashboard is deployed on [Plotly Cloud](https://plotly.com/). That environment runs
+Altair 5.5 on Python 3.13, which is why `altair` is pinned to `>=5,<6` here: Altair 6
+emits Vega-Lite v6 specs, while the renderer bundled with `dash-vega-components` speaks
+Vega-Lite v5.
+
+The deployed copy is the same code as `src/earthquake_dashboard/`, laid out flat
+(`app2.py`, `DataLoader.py`, `DataVisualizer.py`, `pages/`) to suit the platform, with
+its conda environment captured in a `Viz.yaml` export.
 
 ## Development
 
@@ -87,7 +100,7 @@ offline.
 | Path | Purpose |
 |---|---|
 | `src/earthquake_dashboard/` | Installable package: API client, chart factory, Dash app |
-| `src/earthquake_dashboard/pages/` | Dash pages (home, loader/visualizer dashboard) |
+| `src/earthquake_dashboard/pages/` | Dash pages: `index.py` (landing page + quick-start guide) and `dashboard.py` (the loader/visualizer app at `/dashboard`) |
 | `src/earthquake_dashboard/assets/` | Stylesheet for the dashboard grid layout |
 | `tests/` | pytest suite |
 | `notebooks/` | Exploratory notebook the dashboard grew out of |
