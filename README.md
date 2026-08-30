@@ -3,109 +3,148 @@
 [![CI](https://github.com/chernobylx/Earthquake-Visualization-Dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/chernobylx/Earthquake-Visualization-Dashboard/actions/workflows/ci.yml)
 
 An interactive dashboard for exploring earthquake data from the
-[USGS Earthquake Catalog API](https://earthquake.usgs.gov/fdsnws/event/1/),
-built with [Dash](https://dash.plotly.com/) and [Altair](https://altair-viz.github.io/)/Vega-Lite.
+[USGS Earthquake Catalog API](https://earthquake.usgs.gov/fdsnws/event/1/), built with
+[Dash](https://dash.plotly.com/) and [Altair](https://altair-viz.github.io/)/Vega-Lite.
 
-Query the live USGS catalog with custom date, magnitude, depth, and location
-filters, then explore the results through a linked set of views: a world map
-with configurable projection, brushable histogram filters, and a
-time–depth heatmap. Selections in any view filter all the others.
+Query the live USGS catalog by date, magnitude, significance, depth, and geographic
+bounds, then explore what comes back through a linked set of views — a world map, a
+stack of brushable histograms, and a time–depth heatmap. Every view shares the same
+Vega-Lite selections, so a brush drawn in any one of them filters all the others.
 
 ![Dashboard visualization: world map of earthquakes with linked histogram filters and a time-depth heatmap](docs/figures/dashboard.png)
 
 ## Features
 
-- **Live data loading** — query the USGS FDSN event API with validated request
-  parameters (date range, magnitude, significance, depth, latitude/longitude
-  bounds), preview the result count before downloading, and browse the raw
-  records in a sortable, filterable data table.
-- **Cross-filtered views** — the map, histograms, and heatmap share Vega-Lite
-  interval selections: brush a histogram or drag on the map and every other
-  view updates.
-- **Configurable map** — choice of projection (equal Earth, Mercator,
-  azimuthal equal-area, ...), rotation and scale sliders, and custom colors.
-- **Flexible encodings** — pick which variables drive point size, color, and
-  opacity on the map, and which pair of variables the heatmap aggregates.
+- **Live data loading** — query the USGS FDSN event API through a validated parameter
+  object, preview the match count before committing to a download, and browse the raw
+  records in a sortable, filterable table.
+- **Cross-filtered views** — the map, histograms, and heatmap share interval
+  selections. Brush a histogram or drag across the map and every other view responds.
+- **Configurable map** — three projections (Natural Earth, azimuthal equal-area,
+  Mercator), rotation and scale sliders, and free-text fill, stroke, and background
+  colors.
+- **Flexible encodings** — choose which variables drive point size, color, and opacity
+  on the map, which pair the heatmap aggregates over, and which columns become filter
+  histograms.
+- **Time axes that follow the window** — the heatmap and time histogram switch between
+  yearly, monthly, and daily tick formats based on the span of the loaded data, so a
+  one-month query doesn't render every tick as the same month.
 
 ![Dashboard user interface: data loader and visualizer control panels](docs/figures/app-ui.png)
 
-## Architecture
-
-The code is a small installable package (`src/earthquake_dashboard/`) with
-three layers:
-
-| Module | Responsibility |
-|---|---|
-| `data_loader.py` | `RequestParams` (a validated dataclass mirroring the USGS API's query parameters) and `DataLoader` (count/query/preprocess against the live API, returning a typed GeoDataFrame) |
-| `visualizer.py` | `DataVisualizer` validates the input DataFrame's columns and dtypes, then composes the Altair chart: world map + earthquake layer, per-variable histogram selectors, and a heatmap, all linked through shared selections |
-| `app.py` + `pages/` | The multi-page Dash app: layout, widgets, and the callbacks that wire user input to `DataLoader` and `DataVisualizer` |
-
-Separating the API client and the chart factory from the Dash layer keeps both
-independently testable and reusable — the same `DataVisualizer` powers the
-exploratory notebook in `notebooks/`.
-
-## Getting started
+## Quick start
 
 ### With pixi (recommended)
 
 Install [pixi](https://pixi.sh), then from the repository root:
 
 ```bash
-pixi install       # create the environment from pixi.toml
-pixi run app       # start the dashboard at http://127.0.0.1:8050
+pixi install
+```
+
+```bash
+pixi run app
 ```
 
 ### With pip
 
+Requires Python 3.11 or newer.
+
 ```bash
-python -m venv .venv && source .venv/bin/activate   # .venv\Scripts\activate on Windows
 pip install -e ".[dev]"
+```
+
+```bash
 python -m earthquake_dashboard.app
 ```
 
-Then open <http://127.0.0.1:8050>. The landing page has a quick-start guide; click
-**Launch Dashboard** (or go straight to `/dashboard`) to reach the app itself. There,
-choose your query parameters, click **Count** to preview how many events match,
-**Load** to fetch them, and **Visualize** to build the linked charts.
+### Using the app
 
-Set `DASH_DEBUG=1` to run the app with Dash's debug tooling enabled.
+Open <http://127.0.0.1:8050>. The landing page carries a quick-start guide; click
+**Launch Dashboard** — or go straight to `/dashboard` — to reach the app itself. There:
 
-## Deployment
+1. Set your query with the date, magnitude, significance, depth, latitude, and
+   longitude controls.
+2. Click **Count** to see how many events match, without downloading them.
+3. Click **Load** to fetch the records into the table.
+4. Click **Visualize** to build the linked charts.
 
-The dashboard is deployed on [Plotly Cloud](https://plotly.com/). That environment runs
-Altair 5.5 on Python 3.13, which is why `altair` is pinned to `>=5,<6` here: Altair 6
-emits Vega-Lite v6 specs, while the renderer bundled with `dash-vega-components` speaks
-Vega-Lite v5.
+**Clear** empties the table and resets the count. Set `DASH_DEBUG=1` to start the app
+with Dash's debug tooling enabled.
 
-The deployed copy is the same code as `src/earthquake_dashboard/`, laid out flat
-(`app2.py`, `DataLoader.py`, `DataVisualizer.py`, `pages/`) to suit the platform, with
-its conda environment captured in a `Viz.yaml` export.
+## The data
 
-## Development
+Records come from the USGS FDSN event API on demand and are never committed; anything
+written under `data/` is gitignored. Each loaded event carries these fields, and the
+loader enforces their types before the visualizer will accept a frame:
 
-```bash
-pixi run check     # lint + tests
-pixi run lint      # ruff check
-pixi run format    # ruff format
-pixi run test      # pytest
-```
+| Field | Type | Meaning |
+|---|---|---|
+| `place` | string | Human-readable location description |
+| `time` | datetime (UTC) | When the event occurred |
+| `lat` / `lon` | float | Geographic coordinates |
+| `depth` | float | Depth below the surface, in km |
+| `mag` | float | Magnitude |
+| `sig` | int | USGS significance score |
+| `tsunami` | bool | Whether a tsunami was generated |
+| `cdi` | float | Community Decimal Intensity (reported shaking) |
+| `alert` | string | PAGER alert level: green, yellow, orange, or red |
 
-The test suite covers request-parameter validation, the DataFrame contract
-enforced by `DataVisualizer`, and (when the USGS API is reachable) live
-count/query/preprocess round trips — the live tests skip automatically
-offline.
+A single request is capped at 20,000 records by the API.
+
+## Architecture
+
+The code is a small installable package under `src/earthquake_dashboard/`, in three
+layers:
+
+| Module | Responsibility |
+|---|---|
+| `data_loader.py` | `RequestParams`, a validated dataclass mirroring the USGS query parameters, and `DataLoader`, which counts, queries, and preprocesses against the live API and returns a typed GeoDataFrame |
+| `visualizer.py` | `DataVisualizer` checks the input frame's columns and dtypes, then composes the Altair chart: world map plus earthquake layer, per-variable histogram selectors, and a heatmap, all wired through shared selections |
+| `app.py` + `pages/` | The multi-page Dash app — layout, widgets, and the callbacks connecting user input to the two classes above |
+
+Keeping the API client and the chart factory out of the Dash layer means both can be
+exercised directly by the test suite, without standing up a server.
 
 ## Project structure
 
 | Path | Purpose |
 |---|---|
 | `src/earthquake_dashboard/` | Installable package: API client, chart factory, Dash app |
-| `src/earthquake_dashboard/pages/` | Dash pages: `index.py` (landing page + quick-start guide) and `dashboard.py` (the loader/visualizer app at `/dashboard`) |
-| `src/earthquake_dashboard/assets/` | Stylesheet for the dashboard grid layout |
+| `src/earthquake_dashboard/pages/` | `index.py` (landing page and quick-start guide, at `/`) and `dashboard.py` (the loader and visualizer, at `/dashboard`) |
+| `src/earthquake_dashboard/assets/` | Stylesheet driving the dashboard's grid layout |
 | `tests/` | pytest suite |
-| `notebooks/` | Exploratory notebook the dashboard grew out of |
+| `notebooks/` | `eq-dashboard.ipynb`, the self-contained ipywidgets prototype this dashboard grew out of |
 | `docs/figures/` | Images used in this README |
 | `pixi.toml` / `pyproject.toml` | Environment, packaging, and tool configuration |
 
-Earthquake data is fetched on demand from the USGS API and is not committed;
-anything saved under `data/` is gitignored.
+## Development
+
+```bash
+pixi run check
+```
+
+That runs lint and tests together; `pixi run lint`, `pixi run format`, and
+`pixi run test` run [ruff](https://docs.astral.sh/ruff/) check, ruff format, and pytest
+individually.
+
+The suite covers request-parameter validation, the DataFrame contract `DataVisualizer`
+enforces, and live count/query/preprocess round trips against the real API. The live
+tests skip themselves when USGS is unreachable, and assert relationships rather than
+fixed record counts — the catalog is revised over time, so pinning an exact number for
+a historical window makes the suite fail for reasons that have nothing to do with the
+code.
+
+CI runs the same lint and tests on Python 3.11 and 3.12.
+
+## Deployment
+
+The dashboard is hosted on [Plotly Cloud](https://plotly.com/), running Altair 5.5 on
+Python 3.13. That version matters: `altair` is pinned to `>=5,<6` here because Altair 6
+emits Vega-Lite v6 specs, while the renderer bundled with `dash-vega-components` speaks
+Vega-Lite v5. Unpinned, the chart still renders but the browser warns about the
+mismatch and falls back to best-effort handling of anything v6-specific.
+
+The deployed copy is the same code as `src/earthquake_dashboard/`, flattened
+(`app2.py`, `DataLoader.py`, `DataVisualizer.py`, `pages/`) to suit the platform, with
+its conda environment captured in a `Viz.yaml` export.
