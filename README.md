@@ -94,6 +94,23 @@ loader enforces their types before the visualizer will accept a frame:
 
 A single request is capped at 20,000 records by the API.
 
+## Known limitations
+
+**A map brush goes stale when a histogram filter widens.** With interval brushes active
+on *both* the map and a histogram, widening the histogram brush brings the newly matching
+earthquakes onto the map greyed out and leaves them out of the heatmap. Repositioning the
+map brush forces a re-evaluation and they appear. This predates the package restructure —
+it is present in the original build and on the deployed app.
+
+The likely cause is that the map's brush has no data fields to project onto. A Vega-Lite
+interval selection projects onto its view's `x` and `y` channels, but the earthquake layer
+positions its marks with `longitude`/`latitude` through a projection, so there are no
+invertible scales; the selection compiles with neither `encodings` nor `fields`, and so
+cannot act as a data predicate the way the histogram brushes can.
+
+Cross-filtering itself is unaffected — brushing a histogram does filter both the map and
+the heatmap.
+
 ## Architecture
 
 The code is a small installable package under `src/earthquake_dashboard/`, in three
