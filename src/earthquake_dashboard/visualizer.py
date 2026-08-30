@@ -31,9 +31,9 @@ class DataVisualizer:
         if time_range < timedelta(days = 1000):
             format = '%Y-%m'
             tool_tip = 'yearmonth(time)'
-        elif time_range < timedelta(days = 100):
+        if time_range < timedelta(days = 100):
             format = '%Y-%m-%d'
-            tool_tip = 'yearmonthday(time)'
+            tool_tip = 'yearmonthdate(time)'
 
         n_days = int(time_range / timedelta(days=1))
         step = int(n_days/12) * day
@@ -96,7 +96,7 @@ class DataVisualizer:
                 format = '%Y'
                 if time_range < timedelta(days = 1000):
                     format = '%Y-%m'
-                elif time_range < timedelta(days = 100):
+                if time_range < timedelta(days = 100):
                     format = '%Y-%m-%d'
 
                 n_days = int(time_range / timedelta(days=1))
@@ -107,7 +107,9 @@ class DataVisualizer:
                         title = 'Date')
                     
                 type = ':T'
-
+            elif var == 'depth':
+                type = ':Q'
+                x = alt.X(var+type, bin = alt.Bin(step=12.5), title = None)
             else:
                 type = ':Q'
                 x = alt.X(var + type, bin=alt.Bin(maxbins=30), title = None)
