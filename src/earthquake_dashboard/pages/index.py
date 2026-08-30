@@ -29,9 +29,9 @@ layout = html.Div([
                 ' class to fetch earthquake data from the USGS API. To customize your data query:'
             ]),
             html.Ul([
-                html.Li('Modify parameters in DataLoader.py (date range, magnitude, location, depth)'),
+                html.Li('Set date range, magnitude, significance, depth and map bounds in the Query USGS panel'),
                 html.Li('Maximum 20,000 records per query'),
-                html.Li('Default date range: Past 7 days'),
+                html.Li('Default date range: past 30 days'),
                 html.Li('Default minimum magnitude: 6.0'),
             ]),
 
@@ -40,23 +40,23 @@ layout = html.Div([
 
             html.H4('Map Projection Controls:', style={'color': 'rgb(148, 148, 239)', 'marginLeft': '20px'}),
             html.Ul([
-                html.Li([html.Strong('Projection Type:'), ' Choose between equalEarth, mercator, or azimuthalEqualArea projections']),
-                html.Li([html.Strong('Rotation (Phi/Theta):'), ' Rotate the globe to view different perspectives']),
-                html.Li([html.Strong('Scale:'), ' Zoom in/out on the map (10-1000)']),
+                html.Li([html.Strong('Projection Type:'), ' Natural Earth, Azimuthal Equal-Area, or Mercator']),
+                html.Li([html.Strong('Spin East-West / Tilt North-South:'), ' Rotate the globe to view different perspectives']),
+                html.Li([html.Strong('Zoom:'), ' Zoom the geography in or out (10-1000)']),
             ], style={'marginLeft': '20px'}),
 
             html.H4('Visual Encodings:', style={'color': 'rgb(148, 148, 239)', 'marginLeft': '20px'}),
             html.Ul([
-                html.Li([html.Strong('Size Variable:'), ' Control point size based on magnitude, significance, or other metrics']),
-                html.Li([html.Strong('Color Variable:'), ' Color points by magnitude, depth, time, or significance']),
-                html.Li([html.Strong('Opacity Variable:'), ' Adjust transparency based on selected metric']),
+                html.Li([html.Strong('Point Size:'), ' Control point size based on magnitude, significance, or other metrics']),
+                html.Li([html.Strong('Point Color:'), ' Color points by magnitude, depth, time, or significance']),
+                html.Li([html.Strong('Point Opacity:'), ' Adjust transparency based on selected metric']),
             ], style={'marginLeft': '20px'}),
 
             html.H4('Styling Options:', style={'color': 'rgb(148, 148, 239)', 'marginLeft': '20px'}),
             html.Ul([
-                html.Li([html.Strong('Map Fill Color:'), ' Customize land mass color (e.g., #4287f5)']),
-                html.Li([html.Strong('Map Stroke Color:'), ' Set border color for countries']),
-                html.Li([html.Strong('Background Color:'), ' Change the visualization background']),
+                html.Li([html.Strong('Land Color:'), ' Customize land mass color (e.g., #4287f5)']),
+                html.Li([html.Strong('Border Color:'), ' Set the country outline color']),
+                html.Li([html.Strong('Canvas Color:'), ' Change the figure background']),
             ], style={'marginLeft': '20px'}),
 
             html.H3('3. Interactive Filtering', style={'color': 'rgb(108, 108, 224)', 'marginTop': '20px'}),
