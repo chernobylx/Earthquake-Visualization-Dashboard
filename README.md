@@ -11,7 +11,9 @@ bounds, then explore what comes back through a linked set of views — a world m
 stack of brushable histograms, and a time–depth heatmap. Every view shares the same
 Vega-Lite selections, so a brush drawn in any one of them filters all the others.
 
-![Dashboard visualization: world map of earthquakes with linked histogram filters and a time-depth heatmap](docs/figures/dashboard.png)
+**[Try the live dashboard](https://0be82526-8d32-4767-bbed-2b63946ff944.plotly.app/dashboard)** — hosted on Plotly Cloud, querying the USGS catalog in real time.
+
+![Linked views over 2,251 M2.5+ earthquakes from the past 30 days: a world map coloured by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
 
 ## Features
 
@@ -30,7 +32,7 @@ Vega-Lite selections, so a brush drawn in any one of them filters all the others
   yearly, monthly, and daily tick formats based on the span of the loaded data, so a
   one-month query doesn't render every tick as the same month.
 
-![Dashboard user interface: data loader and visualizer control panels](docs/figures/app-ui.png)
+![The data loader and visualizer control panels, with 2,251 records loaded into the sortable data table](docs/figures/app-ui.png)
 
 ## Quick start
 
@@ -116,6 +118,7 @@ exercised directly by the test suite, without standing up a server.
 | `tests/` | pytest suite |
 | `notebooks/` | `eq-dashboard.ipynb`, the self-contained ipywidgets prototype this dashboard grew out of |
 | `docs/figures/` | Images used in this README |
+| `docs/make_figures.mjs` | Regenerates those images by driving the running app with headless Chrome |
 | `pixi.toml` / `pyproject.toml` | Environment, packaging, and tool configuration |
 
 ## Development
@@ -137,9 +140,23 @@ code.
 
 CI runs the same lint and tests on Python 3.11 and 3.12.
 
+### Regenerating the README figures
+
+The figures under `docs/figures/` are captured from the real app rather than hand-cropped.
+Start the app, then drive it with headless Chrome:
+
+```bash
+CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe" node docs/make_figures.mjs
+```
+
+It loads a query, sets the map to colour by magnitude, clicks through Count / Load /
+Visualize, and writes both PNGs. `MIN_MAG`, `COLOR_VAR`, `BASE`, and `OUTDIR` override the
+defaults. Node 22+ only — no npm install, it uses the built-in WebSocket to speak CDP.
+
 ## Deployment
 
-The dashboard is hosted on [Plotly Cloud](https://plotly.com/), running Altair 5.5 on
+The dashboard is hosted on [Plotly Cloud](https://plotly.com/) at
+<https://0be82526-8d32-4767-bbed-2b63946ff944.plotly.app/>, running Altair 5.5 on
 Python 3.13. That version matters: `altair` is pinned to `>=5,<6` here because Altair 6
 emits Vega-Lite v6 specs, while the renderer bundled with `dash-vega-components` speaks
 Vega-Lite v5. Unpinned, the chart still renders but the browser warns about the
