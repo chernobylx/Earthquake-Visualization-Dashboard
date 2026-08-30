@@ -51,15 +51,17 @@ class TestRequestParams:
 
 @needs_usgs
 class TestDataLoader:
-    #test DataLoader.count 
-    def test_count(self): 
-        dl = DataLoader(TEST_PARAMS) 
-        assert dl.count() == 6
+    #test DataLoader.count
+    #The USGS catalog is revised over time, so assert a floor rather than an exact
+    #count: this window held 6 M5+ events when the test was written.
+    def test_count(self):
+        dl = DataLoader(TEST_PARAMS)
+        assert dl.count() >= 6
 
-    #test DataLoader.query
+    #test DataLoader.query -- the query must return exactly what count promised
     def test_query(self):
-        dl = DataLoader(TEST_PARAMS) 
-        assert len(dl.query()) == 6
+        dl = DataLoader(TEST_PARAMS)
+        assert len(dl.query()) == dl.count()
     
     def test_preprocess(self):
         #test that the dataframe has the correct columns and datatypes required by the visualizer

@@ -13,7 +13,7 @@ app.layout = html.Div([
         ) for page in dash.page_registry.values()
     ]),
     dash.page_container
-])
+], id='header', className='header')
 
 # Clientside callback to capture visualizer_output div dimensions
 app.clientside_callback(

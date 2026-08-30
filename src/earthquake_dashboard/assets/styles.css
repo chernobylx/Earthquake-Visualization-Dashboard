@@ -15,6 +15,12 @@
     row-gap: 10px;
     column-gap: 10px;
 }
+
+#header{
+    background-color: rgb(0,0,32);
+    width: 100vw;
+    color: darkblue;
+}
 .dashboard {
     background-color: l*rgb(0,0,88);
     height: auto;
