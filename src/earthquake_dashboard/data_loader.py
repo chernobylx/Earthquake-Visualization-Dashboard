@@ -99,11 +99,16 @@ class DataLoader:
         assert params.validate()
         self.params = params
 
-    def count(self)->int: 
+    def count(self)->int:
         #performs a get request using count_url and params
         #returns the number of records that would be returned in a query
         try:
-            self.response = requests.get(self.count_url, self.params.__dict__)
+            #the count endpoint honours 'limit', so sending it makes the count
+            #saturate at the cap and report 20000 for any larger window. Drop it
+            #here: without an honest count the query() guard below can never fire
+            #and an oversized query is silently truncated instead of refused.
+            count_params = {k: v for k, v in self.params.__dict__.items() if k != 'limit'}
+            self.response = requests.get(self.count_url, count_params)
             if self.response.status_code != 200:
                 raise Exception(f'HTTP Request Error: {self.response.status_code}')
         except Exception as e:

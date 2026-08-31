@@ -76,3 +76,30 @@ class TestDataLoader:
         
         for col, expected_type in COL_TYPES.items():
             assert df[col].dtype == expected_type, f"Column '{col}' must be of type {expected_type}"
+
+
+class TestCountDoesNotSendLimit:
+    #The USGS count endpoint honours 'limit', so sending it makes the count
+    #saturate at the cap: any larger window reports exactly 20,000 and the
+    #query() guard can never fire. Offline test -- it inspects the outgoing
+    #request rather than the live catalogue.
+    def test_count_omits_limit(self, monkeypatch):
+        sent = {}
+
+        class FakeResponse:
+            status_code = 200
+            text = '{"count": 21753}'
+
+        def fake_get(url, params=None, **kwargs):
+            sent['url'] = url
+            sent['params'] = params
+            return FakeResponse()
+
+        monkeypatch.setattr(requests, 'get', fake_get)
+
+        assert DataLoader(TEST_PARAMS).count() == 21753
+        assert 'limit' not in sent['params'], \
+            "count() must not send 'limit': the endpoint honours it and the count saturates"
+        #every other query parameter still has to reach the API
+        assert sent['params']['minmagnitude'] == TEST_PARAMS.minmagnitude
+        assert sent['params']['format'] == 'geojson'
