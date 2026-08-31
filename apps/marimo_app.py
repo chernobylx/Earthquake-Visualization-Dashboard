@@ -39,6 +39,11 @@ def _():
     # chart vanished with it (issue #17). State survives a stopped cell.
     get_df, set_df = mo.state(None)
 
+    # The rendered chart lives in state for the same reason: the chart cell is
+    # gated on a Render chart button, and a gated cell that returned the chart
+    # would blank it on every control change (issue #18).
+    get_chart, set_chart = mo.state(None)
+
     # Encoding options come from the column contract, not from the loaded
     # frame. Deriving them from `df` made every control cell depend on the
     # data, so fetching rebuilt all fourteen widgets at their defaults and
@@ -60,8 +65,10 @@ def _():
         RequestParams,
         REQUIRED_COLS,
         date,
+        get_chart,
         get_df,
         mo,
+        set_chart,
         set_df,
         timedelta,
     )
@@ -295,12 +302,18 @@ def _(NUMERIC_COLS, mo):
         label="Histograms",
     )
 
+    # Lives in this cell, not one of its own: a cell defining only the button
+    # would need its own grid slot, and this cell is the one that never reruns
+    # on a widget move, so the button survives alongside the settings.
+    render_button = mo.ui.run_button(label="Render chart")
+
     mo.hstack(
         [
             mo.vstack([mo.md("**Map**"), projection, spin, tilt, zoom]),
             mo.vstack([mo.md("**Colors**"), canvas_color, land_color, border_color]),
             mo.vstack([mo.md("**Points**"), point_size, point_color, point_opacity]),
             mo.vstack([mo.md("**Heatmap**"), heat_x, heat_y, heat_metric, histograms]),
+            mo.vstack([mo.md("**Draw**"), render_button]),
         ],
         justify="start",
         gap=2,
@@ -318,6 +331,7 @@ def _(NUMERIC_COLS, mo):
         point_opacity,
         point_size,
         projection,
+        render_button,
         spin,
         tilt,
         zoom,
@@ -341,53 +355,72 @@ def _(
     point_opacity,
     point_size,
     projection,
+    render_button,
+    set_chart,
     spin,
     tilt,
     zoom,
 ):
-    # Redraws whenever a control above changes; unlike the query cells this is
-    # pure local computation. An explicit Render Chart button is issue #18.
-    mo.stop(chart_source is None, mo.md("*Fetch data to draw the chart.*"))
+    # This cell references every chart control, so marimo reruns it on each
+    # tweak — dragging Zoom re-encoded thousands of rows per intermediate value
+    # (issue #18). The button is the gate; the stop below leaves whatever was
+    # rendered last on screen, because the result goes to state instead of
+    # being this cell's output. The cell shows nothing itself.
+    mo.stop(not render_button.value)
 
-    # Whatever survives the filters above, not the whole download.
-    _frame = chart_source.value
+    # Past this point the press was deliberate, so a problem is reported rather
+    # than silently held: each branch replaces the chart with the reason.
+    if chart_source is None:
+        set_chart(mo.md("*Fetch data to draw the chart.*"))
+    elif not histograms.value:
+        set_chart(mo.md(":warning: Pick at least one histogram variable."))
+    else:
+        # Whatever survives the filters above, not the whole download.
+        _frame = chart_source.value
 
-    # A transform can drop a column, and DataVisualizer asserts on all of them —
-    # say so plainly rather than surfacing an AssertionError.
-    _missing = [c for c in REQUIRED_COLS if c not in _frame.columns]
-    mo.stop(
-        bool(_missing),
-        mo.md(f":warning: The chart needs `{'`, `'.join(_missing)}` — a transform removed it."),
-    )
-    mo.stop(_frame.empty, mo.md(":warning: The filters match no events."))
-    mo.stop(
-        not histograms.value,
-        mo.md(":warning: Pick at least one histogram variable."),
-    )
+        # A transform can drop a column, and DataVisualizer asserts on all of
+        # them — say so plainly rather than surfacing an AssertionError.
+        _missing = [c for c in REQUIRED_COLS if c not in _frame.columns]
+        if _missing:
+            set_chart(mo.md(
+                f":warning: The chart needs `{'`, `'.join(_missing)}` — a transform removed it."
+            ))
+        elif _frame.empty:
+            set_chart(mo.md(":warning: The filters match no events."))
+        else:
+            # The filtering widget was handed a tz-naive copy (see the cell
+            # above); put the timezone back, because COL_TYPES demands
+            # datetime64[ns, UTC].
+            _frame = _frame.assign(time=_frame["time"].dt.tz_localize("UTC"))
 
-    # The filtering widget was handed a tz-naive copy (see the cell above);
-    # put the timezone back, because COL_TYPES demands datetime64[ns, UTC].
-    _frame = _frame.assign(time=_frame["time"].dt.tz_localize("UTC"))
+            set_chart(DataVisualizer(_frame).create_chart(
+                width=1200,
+                height=800,
+                projection=projection.value,
+                phi=spin.value,
+                theta=tilt.value,
+                scale=zoom.value,
+                map_fill=land_color.value,
+                map_stroke=border_color.value,
+                background=canvas_color.value,
+                size_var=point_size.value,
+                color_var=point_color.value,
+                opacity_var=point_opacity.value,
+                heatmap_x=heat_x.value,
+                heatmap_y=heat_y.value,
+                heatmap_color=heat_metric.value,
+                filter_vars=histograms.value,
+            ))
+    return
 
-    chart = DataVisualizer(_frame).create_chart(
-        width=1200,
-        height=800,
-        projection=projection.value,
-        phi=spin.value,
-        theta=tilt.value,
-        scale=zoom.value,
-        map_fill=land_color.value,
-        map_stroke=border_color.value,
-        background=canvas_color.value,
-        size_var=point_size.value,
-        color_var=point_color.value,
-        opacity_var=point_opacity.value,
-        heatmap_x=heat_x.value,
-        heatmap_y=heat_y.value,
-        heatmap_color=heat_metric.value,
-        filter_vars=histograms.value,
-    )
-    chart
+
+@app.cell
+def _(get_chart, mo):
+    # Reads the state and nothing else, so it reruns only when a render
+    # actually stored something new. Never calls set_chart: a cell that both
+    # read the getter and called the setter would rerun itself.
+    _chart = get_chart()
+    _chart if _chart is not None else mo.md("*Press **Render chart** to draw.*")
     return
 
 
