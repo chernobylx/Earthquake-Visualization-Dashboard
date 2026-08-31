@@ -1,0 +1,301 @@
+"""Earthquake dashboard as a marimo notebook.
+
+Same two layers as the Dash app — earthquake_dashboard.DataLoader for the USGS
+query and DataVisualizer for the linked chart — with marimo's reactive cells and
+mo.ui widgets in place of Dash callbacks.
+
+    pixi run -e alt marimo-run     # read-only app
+    pixi run -e alt marimo         # editable notebook
+"""
+
+import marimo
+
+__generated_with = "0.24.0"
+app = marimo.App(
+    width="full",
+    app_title="Earthquake Dashboard",
+    layout_file="layouts/marimo_app.grid.json",
+)
+
+
+@app.cell
+def _():
+    from datetime import date, timedelta
+
+    import marimo as mo
+
+    from earthquake_dashboard.data_loader import DT_FORMAT, DataLoader, RequestParams
+    from earthquake_dashboard.visualizer import DataVisualizer
+
+    return (
+        DT_FORMAT,
+        DataLoader,
+        DataVisualizer,
+        RequestParams,
+        date,
+        mo,
+        timedelta,
+    )
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    # Earthquake Visualization Dashboard
+
+    Live data from the [USGS Earthquake Catalog](https://earthquake.usgs.gov/fdsnws/event/1/).
+    Set a query below, **Preview count** to see how many events match, then **Fetch data**.
+    """)
+    return
+
+
+@app.cell
+def _(date, mo, timedelta):
+    # --- query controls -------------------------------------------------
+    # Nothing here hits the network. Cells that do are gated on the buttons
+    # below, so dragging a slider never fires a request.
+    start_date = mo.ui.date(
+        value=date.today() - timedelta(days=30), label="From (UTC)"
+    )
+    end_date = mo.ui.date(value=date.today() + timedelta(days=1), label="Up to (UTC)")
+
+    magnitude = mo.ui.range_slider(
+        start=0, stop=10, step=0.1, value=[6.0, 9.1], label="Magnitude", show_value=True
+    )
+    significance = mo.ui.range_slider(
+        start=0, stop=3000, step=50, value=[0, 3000], label="Significance", show_value=True
+    )
+    depth = mo.ui.range_slider(
+        start=-100, stop=1000, step=25, value=[-100, 1000], label="Depth (km)", show_value=True
+    )
+    latitude = mo.ui.range_slider(
+        start=-90, stop=90, step=1, value=[-90, 90], label="Latitude", show_value=True
+    )
+    longitude = mo.ui.range_slider(
+        start=-180, stop=180, step=1, value=[-180, 180], label="Longitude", show_value=True
+    )
+    return (
+        depth,
+        end_date,
+        latitude,
+        longitude,
+        magnitude,
+        significance,
+        start_date,
+    )
+
+
+@app.cell
+def _(
+    depth,
+    end_date,
+    latitude,
+    longitude,
+    magnitude,
+    mo,
+    significance,
+    start_date,
+):
+    count_button = mo.ui.run_button(label="Preview count")
+    fetch_button = mo.ui.run_button(label="Fetch data")
+
+    query_panel = mo.vstack(
+        [
+            mo.md("### Query USGS"),
+            mo.hstack([start_date, end_date], justify="start", gap=1),
+            magnitude,
+            significance,
+            depth,
+            latitude,
+            longitude,
+            mo.hstack([count_button, fetch_button], justify="start", gap=1),
+        ]
+    )
+    query_panel
+    return count_button, fetch_button
+
+
+@app.cell
+def _(
+    DT_FORMAT,
+    RequestParams,
+    depth,
+    end_date,
+    latitude,
+    longitude,
+    magnitude,
+    significance,
+    start_date,
+):
+    from datetime import datetime as _dt
+
+    def current_params():
+        """The widget values as a validated RequestParams."""
+        return RequestParams(
+            starttime=_dt.combine(start_date.value, _dt.min.time()).strftime(DT_FORMAT),
+            endtime=_dt.combine(end_date.value, _dt.min.time()).strftime(DT_FORMAT),
+            minmagnitude=magnitude.value[0],
+            maxmagnitude=magnitude.value[1],
+            minsig=significance.value[0],
+            maxsig=significance.value[1],
+            mindepth=depth.value[0],
+            maxdepth=depth.value[1],
+            minlatitude=latitude.value[0],
+            maxlatitude=latitude.value[1],
+            minlongitude=longitude.value[0],
+            maxlongitude=longitude.value[1],
+        )
+
+    return (current_params,)
+
+
+@app.cell
+def _(DataLoader, count_button, current_params, mo):
+    # Gated on the button: marimo re-runs this cell whenever any input changes,
+    # so without the guard every slider drag would query the API.
+    mo.stop(not count_button.value, mo.md("*Press **Preview count** to check the query.*"))
+
+    _n = DataLoader(current_params()).count()
+    mo.md(
+        f"**{_n:,} events match.**"
+        + ("  \n:warning: over the 20,000 record limit — narrow the query." if _n > 20000 else "")
+    )
+    return
+
+
+@app.cell
+def _(DataLoader, current_params, fetch_button, mo):
+    mo.stop(not fetch_button.value, mo.md("*Press **Fetch data** to download.*"))
+
+    _loader = DataLoader(current_params())
+    _loader.query()
+    df = _loader.preprocess()
+    mo.md(f"Loaded **{len(df):,}** events.")
+    return (df,)
+
+
+@app.cell
+def _(df, mo):
+    mo.ui.table(df, page_size=10, selection=None)
+    return
+
+
+@app.cell
+def _(df, mo):
+    # --- chart controls -------------------------------------------------
+    # Options come from the frame, so this cell reruns when df changes.
+    _numeric = df.select_dtypes(include=["number", "datetime64[ns, UTC]"]).columns.tolist()
+
+    projection = mo.ui.dropdown(
+        options={
+            "Natural Earth": "naturalEarth1",
+            "Azimuthal Equal-Area": "azimuthalEqualArea",
+            "Mercator": "mercator",
+        },
+        value="Natural Earth",
+        label="Projection",
+    )
+    spin = mo.ui.slider(-179.9, 179.9, 1, value=0, label="Spin E-W", show_value=True)
+    tilt = mo.ui.slider(-89.9, 89.9, 1, value=0, label="Tilt N-S", show_value=True)
+    zoom = mo.ui.slider(10, 1000, 10, value=100, label="Zoom", show_value=True)
+
+    canvas_color = mo.ui.text(value="rgb(80,80,120)", label="Canvas")
+    land_color = mo.ui.text(value="#00008d", label="Land")
+    border_color = mo.ui.text(value="lightgrey", label="Border")
+
+    point_size = mo.ui.dropdown(_numeric, value="mag", label="Point size")
+    point_color = mo.ui.dropdown(_numeric, value="mag", label="Point colour")
+    point_opacity = mo.ui.dropdown(_numeric, value="sig", label="Point opacity")
+
+    heat_x = mo.ui.dropdown(_numeric, value="time", label="Bin across (X)")
+    heat_y = mo.ui.dropdown(_numeric, value="depth", label="Bin down (Y)")
+    heat_metric = mo.ui.dropdown(
+        {"Max magnitude": "max(mag)", "Mean depth": "mean(depth)", "Magnitude": "mag"},
+        value="Max magnitude",
+        label="Cell metric",
+    )
+    histograms = mo.ui.multiselect(
+        _numeric, value=[c for c in ("time", "mag", "depth") if c in _numeric],
+        label="Histograms",
+    )
+
+    mo.hstack(
+        [
+            mo.vstack([mo.md("**Map**"), projection, spin, tilt, zoom]),
+            mo.vstack([mo.md("**Colours**"), canvas_color, land_color, border_color]),
+            mo.vstack([mo.md("**Points**"), point_size, point_color, point_opacity]),
+            mo.vstack([mo.md("**Heatmap**"), heat_x, heat_y, heat_metric, histograms]),
+        ],
+        justify="start",
+        gap=2,
+        widths="equal",
+    )
+    return (
+        border_color,
+        canvas_color,
+        heat_metric,
+        heat_x,
+        heat_y,
+        histograms,
+        land_color,
+        point_color,
+        point_opacity,
+        point_size,
+        projection,
+        spin,
+        tilt,
+        zoom,
+    )
+
+
+@app.cell
+def _(
+    DataVisualizer,
+    border_color,
+    canvas_color,
+    df,
+    heat_metric,
+    heat_x,
+    heat_y,
+    histograms,
+    land_color,
+    mo,
+    point_color,
+    point_opacity,
+    point_size,
+    projection,
+    spin,
+    tilt,
+    zoom,
+):
+    # No render button: marimo reruns this the moment any control above changes,
+    # and unlike the query cells this is pure local computation.
+    mo.stop(
+        not histograms.value,
+        mo.md(":warning: Pick at least one histogram variable."),
+    )
+
+    chart = DataVisualizer(df).create_chart(
+        width=1200,
+        height=800,
+        projection=projection.value,
+        phi=spin.value,
+        theta=tilt.value,
+        scale=zoom.value,
+        map_fill=land_color.value,
+        map_stroke=border_color.value,
+        background=canvas_color.value,
+        size_var=point_size.value,
+        color_var=point_color.value,
+        opacity_var=point_opacity.value,
+        heatmap_x=heat_x.value,
+        heatmap_y=heat_y.value,
+        heatmap_color=heat_metric.value,
+        filter_vars=histograms.value,
+    )
+    chart
+    return
+
+
+if __name__ == "__main__":
+    app.run()
