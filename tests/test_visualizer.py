@@ -1,3 +1,4 @@
+import altair as alt
 import pandas as pd
 import pytest
 
@@ -56,3 +57,42 @@ def test_create_chart_returns_spec():
     chart = dv.create_chart(filter_vars=['mag', 'depth'])
     spec = chart.to_dict()
     assert 'hconcat' in spec or 'vconcat' in spec
+
+
+def heatmap_tooltip(color_var: str) -> list[dict]:
+    """The heatmap's tooltip entries for a given cell metric."""
+    dv = DataVisualizer(make_valid_df())
+    heatmap = dv.create_heatmap(filters=[alt.selection_interval(name='test_brush')],
+                                width=100, height=100, color_var=color_var)
+    return heatmap.to_dict()['encoding']['tooltip']
+
+
+def test_heatmap_names_the_strongest_quake_in_the_cell():
+    place = [t for t in heatmap_tooltip('max(mag)') if t['field'] == 'place']
+    assert place == [{'aggregate': {'argmax': 'mag'},
+                      'field': 'place',
+                      'title': 'Location',
+                      'type': 'nominal'}]
+
+
+def test_heatmap_names_the_shallowest_quake_in_the_cell():
+    place = [t for t in heatmap_tooltip('min(depth)') if t['field'] == 'place']
+    assert place[0]['aggregate'] == {'argmin': 'depth'}
+
+
+def test_heatmap_omits_location_for_a_mean():
+    # No single record owns a mean, so there is nothing honest to point at.
+    assert not [t for t in heatmap_tooltip('mean(depth)') if t['field'] == 'place']
+
+
+def test_heatmap_omits_location_for_an_unaggregated_metric():
+    assert not [t for t in heatmap_tooltip('mag') if t['field'] == 'place']
+
+
+def test_heatmap_tooltips_repeat_the_bins():
+    # A tooltip on a raw field lands in the aggregate's groupby, splitting each
+    # cell by exact time and depth — the colour then is not the bin's extremum.
+    binned = {t.get('field'): t for t in heatmap_tooltip('max(mag)')
+              if t.get('field') in ('time', 'depth')}
+    assert 'bin' in binned['time']
+    assert 'bin' in binned['depth']

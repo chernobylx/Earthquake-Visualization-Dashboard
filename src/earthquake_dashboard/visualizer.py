@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 
 import altair as alt
@@ -7,6 +8,11 @@ from vega_datasets import data
 from earthquake_dashboard.data_loader import COL_TYPES
 
 alt.data_transformers.disable_max_rows()
+
+# A heatmap coloured by max(mag) or min(depth) reduces each cell to one record,
+# so the cell can name it. Matches those shorthands and nothing else: mean(depth)
+# has no owning record to point at.
+EXTREMUM = re.compile(r'^(max|min)\((\w+)\)$')
 
 
 
@@ -27,28 +33,34 @@ class DataVisualizer:
         day = 24*60*60*1000
         time_range = self.df['time'].max() - self.df['time'].min()
         format = '%Y'
-        tool_tip = 'year(time):T'
         if time_range < timedelta(days = 1000):
             format = '%Y-%m'
-            tool_tip = 'yearmonth(time)'
         if time_range < timedelta(days = 100):
             format = '%Y-%m-%d'
-            tool_tip = 'yearmonthdate(time)'
 
         n_days = int(time_range / timedelta(days=1))
         step = int(n_days/12) * day
+        # Every tooltip below repeats its channel's bin. A tooltip on the raw
+        # field instead adds that field to the aggregate's groupby, which splits
+        # each cell by exact time or depth: the rects overplot and the colour
+        # stops being the bin's true extremum.
         if x_var == 'time':
             X = alt.X('time:T',
                       axis = alt.Axis(format = format),
                       bin = alt.BinParams(step = step),
                       title = 'Date')
-            X_tooltip = alt.Tooltip(tool_tip, title='Time')
+            X_tooltip = alt.Tooltip('time:T',
+                                    bin = alt.BinParams(step = step),
+                                    format = format,
+                                    title='Time')
         else:
             X = alt.X(x_var+':Q',
                       axis = alt.Axis(),
                       bin = alt.BinParams(),
                       title = x_var.capitalize())
-            X_tooltip = alt.Tooltip(x_var+':Q', title=x_var.capitalize())
+            X_tooltip = alt.Tooltip(x_var+':Q',
+                                    bin = alt.BinParams(),
+                                    title=x_var.capitalize())
 
         reversed_y = (y_var == 'depth')
         if y_var == 'time':
@@ -56,26 +68,45 @@ class DataVisualizer:
                       axis = alt.Axis(format = '%Y'),
                       bin = alt.BinParams(step = 365 * day),
                       title = 'Date')
-            Y_tooltip = alt.Tooltip('year(time):T', title='Time')
+            Y_tooltip = alt.Tooltip('time:T',
+                                    bin = alt.BinParams(step = 365 * day),
+                                    format = '%Y',
+                                    title='Time')
         else:
             Y = alt.Y(y_var+':Q',
                       axis = alt.Axis(),
                       scale = alt.Scale(reverse = reversed_y),
                       bin = alt.BinParams(),
                       title = y_var.capitalize())
-            Y_tooltip = alt.Tooltip(y_var+':Q', title=y_var.capitalize())
+            Y_tooltip = alt.Tooltip(y_var+':Q',
+                                    bin = alt.BinParams(),
+                                    title=y_var.capitalize())
 
         Color = alt.Color(color_var,
                           scale = alt.Scale(scheme = 'magma'))
 
 
+        tooltips = [X_tooltip,
+                    Y_tooltip,
+                    alt.Tooltip(color_var, title = color_var.capitalize())]
+
+        # When the cell metric is an extremum, one earthquake owns the value —
+        # argmax/argmin over the same bin picks it out, so the tooltip can say
+        # where it was. Leads the list, as the map's point tooltip does.
+        extremum = EXTREMUM.match(color_var)
+        if extremum:
+            op, field = extremum.groups()
+            arg = alt.ArgmaxDef(argmax = field) if op == 'max' else alt.ArgminDef(argmin = field)
+            tooltips.insert(0, alt.Tooltip(field = 'place',
+                                           type = 'nominal',
+                                           aggregate = arg,
+                                           title = 'Location'))
+
         chart = alt.Chart(self.df).mark_rect().encode(
             x = X,
             y = Y,
             color = Color,
-            tooltip = [X_tooltip,
-                       Y_tooltip,
-                       alt.Tooltip(color_var, title = color_var.capitalize())]
+            tooltip = tooltips
         ).transform_filter(
             *filters
         ).properties(
