@@ -151,7 +151,7 @@ def chart_view(
         filter_vars=list(hists),
     )
     # Vega-Lite v5 spec straight from DataVisualizer, rendered by Panel's Vega pane
-    return pn.pane.Vega(chart, sizing_mode="stretch_both", min_height=760)
+    return pn.pane.Vega(chart, sizing_mode="stretch_width", min_height=760)
 
 
 bound_table = pn.bind(table_view, frame=store.param.frame)
