@@ -13,7 +13,7 @@ Vega-Lite selections, so a brush drawn in any one of them filters all the others
 
 **[Try the live dashboard](https://0be82526-8d32-4767-bbed-2b63946ff944.plotly.app/dashboard)** — hosted on Plotly Cloud, querying the USGS catalog in real time.
 
-![Linked views over 2,251 M2.5+ earthquakes from the past 30 days: a world map coloured by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
+![Linked views over 2,251 M2.5+ earthquakes from the past 30 days: a world map colored by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
 
 ## Features
 

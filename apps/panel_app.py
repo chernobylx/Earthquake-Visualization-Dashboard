@@ -24,7 +24,7 @@ start_date = pn.widgets.DatePicker(
     name="From (UTC)", value=date.today() - timedelta(days=30)
 )
 end_date = pn.widgets.DatePicker(name="Up to (UTC)", value=date.today() + timedelta(days=1))
-magnitude = pn.widgets.RangeSlider(name="Magnitude", start=0, end=10, value=(6.0, 9.1), step=0.1)
+magnitude = pn.widgets.RangeSlider(name="Magnitude", start=0, end=10, value=(2.0, 9.1), step=0.1)
 significance = pn.widgets.IntRangeSlider(
     name="Significance", start=0, end=3000, value=(0, 3000), step=50
 )
@@ -50,13 +50,13 @@ spin = pn.widgets.FloatSlider(name="Spin E-W", start=-179.9, end=179.9, value=0,
 tilt = pn.widgets.FloatSlider(name="Tilt N-S", start=-89.9, end=89.9, value=0, step=1)
 zoom = pn.widgets.IntSlider(name="Zoom", start=10, end=1000, value=100, step=10)
 
-canvas_color = pn.widgets.TextInput(name="Canvas", value="rgb(80,80,120)")
-land_color = pn.widgets.TextInput(name="Land", value="#00008d")
-border_color = pn.widgets.TextInput(name="Border", value="lightgrey")
+canvas_color = pn.widgets.TextInput(name="Canvas", value="rgb(26,26,26)")
+land_color = pn.widgets.TextInput(name="Land", value="#444488")
+border_color = pn.widgets.TextInput(name="Border", value="darkblue")
 
-point_size = pn.widgets.Select(name="Point size", options=NUMERIC, value="mag")
-point_color = pn.widgets.Select(name="Point colour", options=NUMERIC, value="mag")
-point_opacity = pn.widgets.Select(name="Point opacity", options=NUMERIC, value="sig")
+point_size = pn.widgets.Select(name="Point size", options=NUMERIC, value="sig")
+point_color = pn.widgets.Select(name="Point color", options=NUMERIC, value="mag")
+point_opacity = pn.widgets.Select(name="Point opacity", options=NUMERIC, value="mag")
 
 heat_x = pn.widgets.Select(name="Bin across (X)", options=NUMERIC, value="time")
 heat_y = pn.widgets.Select(name="Bin down (Y)", options=NUMERIC, value="depth")
@@ -171,7 +171,7 @@ query_card = pn.Card(
 )
 chart_card = pn.Card(
     pn.pane.Markdown("**Map**"), projection, spin, tilt, zoom,
-    pn.pane.Markdown("**Colours**"), canvas_color, land_color, border_color,
+    pn.pane.Markdown("**Colors**"), canvas_color, land_color, border_color,
     pn.pane.Markdown("**Points**"), point_size, point_color, point_opacity,
     pn.pane.Markdown("**Heatmap**"), heat_x, heat_y, heat_metric, histograms,
     title="Chart settings", collapsed=False,
