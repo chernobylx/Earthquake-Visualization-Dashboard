@@ -67,11 +67,11 @@ Open <http://127.0.0.1:8050>. The landing page carries a quick-start guide; clic
 
 1. Set your query with the date, magnitude, significance, depth, latitude, and
    longitude controls.
-2. Click **Count** to see how many events match, without downloading them.
-3. Click **Load** to fetch the records into the table.
-4. Click **Visualize** to build the linked charts.
+2. Click **Preview Count** to see how many events match, without downloading them.
+3. Click **Fetch Data** to fetch the records into the table.
+4. Click **Render Chart** to build the linked charts.
 
-**Clear** empties the table and resets the count. Set `DASH_DEBUG=1` to start the app
+**Clear Table** empties the table and resets the count. Set `DASH_DEBUG=1` to start the app
 with Dash's debug tooling enabled.
 
 ## The data
@@ -166,8 +166,8 @@ Start the app, then drive it with headless Chrome:
 CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe" node docs/make_figures.mjs
 ```
 
-It loads a query, sets the map to colour by magnitude, clicks through Count / Load /
-Visualize, and writes both PNGs. `MIN_MAG`, `COLOR_VAR`, `BASE`, and `OUTDIR` override the
+It loads a query, sets the map to colour by magnitude, clicks through Preview Count /
+Render Chart, and writes both PNGs. `MIN_MAG`, `COLOR_VAR`, `BASE`, and `OUTDIR` override the
 defaults. Node 22+ only — no npm install, it uses the built-in WebSocket to speak CDP.
 
 ## Deployment

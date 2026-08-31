@@ -139,19 +139,29 @@ await sleep(2000);
 
 // Widen the query: walk the magnitude slider's lower thumb down with real arrow keys.
 const startMag = parseFloat(await evalJs(`document.querySelector('#mag_range_slider [role="slider"]').getAttribute('aria-valuenow')`));
-const steps = Math.round((startMag - TARGET_MIN_MAG) / 0.1);
+// Clamp: if the app's default floor is already at or below the target the walk
+// is a no-op, not a negative loop that silently presses nothing.
+const steps = Math.max(0, Math.round((startMag - TARGET_MIN_MAG) / 0.1));
 console.log(`lowering min magnitude ${startMag} -> ${TARGET_MIN_MAG} (${steps} arrow presses)`);
 await evalJs(`document.querySelector('#mag_range_slider [role="slider"]').focus()`);
 await pressKey('ArrowLeft', 'ArrowLeft', 37, steps);
 await sleep(1200);
 const nowMag = await evalJs(`document.querySelector('#mag_range_slider [role="slider"]').getAttribute('aria-valuenow')`);
 console.log(`  slider now reads ${nowMag}`);
+// Fail loudly rather than shooting the figures at the wrong magnitude: a
+// synthetic value change re-renders the thumb without reaching Dash's state.
+if (Math.abs(parseFloat(nowMag) - TARGET_MIN_MAG) > 0.051) {
+  throw new Error(`magnitude slider reads ${nowMag}, expected ${TARGET_MIN_MAG}`);
+}
 
 console.log('clicking Count');
 await evalJs(`document.getElementById('count_button').click()`);
-await waitFor(`/Found \\d+ earthquakes/.test((document.getElementById('count_output')||{}).innerText||'')`, 'count result');
+// Accept both the old and current count copy: the tile said "Found N earthquakes"
+// before the controls were relabelled and says "N events match" now.
+await waitFor(`/(Found \\d+ earthquakes|[\\d,]+ events match)/.test((document.getElementById('count_output')||{}).innerText||'')`, 'count result');
 const countText = await evalJs(`document.getElementById('count_output').innerText.trim()`);
-const n = parseInt(countText.match(/\d+/)[0], 10);
+// Rendered with thousands separators, so "2,251 events match" must not parse as 2.
+const n = parseInt(countText.match(/[\d,]+/)[0].replace(/,/g, ''), 10);
 console.log(`  ${countText}`);
 if (n <= 20) {
   throw new Error(`magnitude change did not reach Dash state (count still ${n}); aborting rather than shipping a sparse figure`);
