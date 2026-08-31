@@ -170,7 +170,12 @@ class DataVisualizer:
         map_height = int(.8 * height)
 
         filter_width = map_width
-        filter_height = int((height - map_height) / len(filter_vars))
+        # Plot-area height per histogram. Each row also renders roughly 20px of
+        # x-axis and 20px of vconcat spacing outside this value, so the composed
+        # chart grows about 40px per histogram whatever we do here. Clamp so the
+        # bars stay readable rather than collapsing to 12px at ten histograms —
+        # the front-end slots scroll.
+        filter_height = max(24, int((height - map_height) / len(filter_vars)))
 
         heatmap_width = width - map_width
         heatmap_height = height

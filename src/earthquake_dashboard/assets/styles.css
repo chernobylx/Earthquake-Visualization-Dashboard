@@ -192,9 +192,20 @@
 
 #visualizer_output{
     min-height: 95vh;
+    /* Pinned, not content-sized: the clientside callback in app.py measures this
+       box and feeds the result back into create_chart(height=...). If the box grew
+       to fit the chart, each Visualize click would measure the previous chart and
+       render a taller one. */
+    max-height: 95vh;
+    overflow-y: auto;
     display: grid;
     grid-template-columns: 1vw auto 1vw;
-    grid-template-areas: '.... chart ....';
+    /* .dashboard-output supplies three rows; the single-area template this rule
+       used to declare put the chart in the 1vh track and let it spill out. */
+    grid-template-rows: 1vh auto 1vh;
+    grid-template-areas: '.... ..... ....'
+                         '.... chart ....'
+                         '.... ..... ....';
 }
 #map{
     grid-area: chart;
