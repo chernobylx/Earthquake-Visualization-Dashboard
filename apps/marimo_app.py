@@ -206,11 +206,22 @@ def _(DataLoader, current_params, fetch_button, mo, set_df):
 @app.cell
 def _(get_df, mo):
     _frame = get_df()
-    (
-        mo.md("*No data loaded yet.*")
-        if _frame is None
-        else mo.ui.table(_frame, page_size=10, selection=None)
-    )
+    if _frame is None:
+        _out = mo.md("*No data loaded yet.*")
+    else:
+        # marimo 0.24 parses a filter value with a naive datetime.fromisoformat
+        # and compares it straight against the column, so filtering a tz-aware
+        # column raises "Invalid comparison between dtype=datetime64[ns, UTC]
+        # and Timestamp" (issue #12) — and `time` is the first column anyone
+        # filters here. Hand the table a tz-naive copy; times are UTC either
+        # way. The frame the chart uses keeps its tz, which COL_TYPES requires
+        # and DataVisualizer asserts.
+        _out = mo.ui.table(
+            _frame.assign(time=_frame["time"].dt.tz_localize(None)),
+            page_size=10,
+            selection=None,
+        )
+    _out
     return
 
 
