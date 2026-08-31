@@ -23,19 +23,25 @@ def _():
     from earthquake_dashboard.data_loader import DT_FORMAT, DataLoader, RequestParams
     from earthquake_dashboard.visualizer import DataVisualizer
 
-    return DT_FORMAT, DataLoader, DataVisualizer, RequestParams, date, mo, timedelta
+    return (
+        DT_FORMAT,
+        DataLoader,
+        DataVisualizer,
+        RequestParams,
+        date,
+        mo,
+        timedelta,
+    )
 
 
 @app.cell
 def _(mo):
-    mo.md(
-        """
-        # Earthquake Visualization Dashboard
+    mo.md("""
+    # Earthquake Visualization Dashboard
 
-        Live data from the [USGS Earthquake Catalog](https://earthquake.usgs.gov/fdsnws/event/1/).
-        Set a query below, **Preview count** to see how many events match, then **Fetch data**.
-        """
-    )
+    Live data from the [USGS Earthquake Catalog](https://earthquake.usgs.gov/fdsnws/event/1/).
+    Set a query below, **Preview count** to see how many events match, then **Fetch data**.
+    """)
     return
 
 
@@ -64,7 +70,15 @@ def _(date, mo, timedelta):
     longitude = mo.ui.range_slider(
         start=-180, stop=180, step=1, value=[-180, 180], label="Longitude", show_value=True
     )
-    return depth, end_date, latitude, longitude, magnitude, significance, start_date
+    return (
+        depth,
+        end_date,
+        latitude,
+        longitude,
+        magnitude,
+        significance,
+        start_date,
+    )
 
 
 @app.cell

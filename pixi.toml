@@ -26,10 +26,13 @@ earthquake_dashboard = { path = ".", editable = true }
 marimo = "*"
 panel = "*"
 
+# Task names deliberately differ from the marimo/panel executables: a task named
+# "panel" shadows the binary, so extra arguments get appended to the task's own
+# command and silently produce a mangled invocation.
 [feature.alt.tasks]
-marimo = "marimo edit apps/marimo_app.py"
-marimo-run = "marimo run apps/marimo_app.py"
-panel = "panel serve apps/panel_app.py --show"
+marimo-app = "marimo run apps/marimo_app.py"
+marimo-edit = "marimo edit apps/marimo_app.py"
+panel-app = "panel serve apps/panel_app.py --show"
 
 [feature.dev.dependencies]
 ruff = "*"
