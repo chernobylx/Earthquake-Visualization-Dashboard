@@ -11,7 +11,11 @@ mo.ui widgets in place of Dash callbacks.
 import marimo
 
 __generated_with = "0.24.0"
-app = marimo.App(width="full", app_title="Earthquake Dashboard")
+app = marimo.App(
+    width="full",
+    app_title="Earthquake Dashboard",
+    layout_file="layouts/marimo_app.grid.json",
+)
 
 
 @app.cell
