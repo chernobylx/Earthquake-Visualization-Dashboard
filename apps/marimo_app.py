@@ -60,7 +60,7 @@ def _(date, mo, timedelta):
     end_date = mo.ui.date(value=date.today() + timedelta(days=1), label="Up to (UTC)")
 
     magnitude = mo.ui.range_slider(
-        start=0, stop=10, step=0.1, value=[6.0, 9.1], label="Magnitude", show_value=True
+        start=0, stop=10, step=0.1, value=[2.0, 9.1], label="Magnitude", show_value=True
     )
     significance = mo.ui.range_slider(
         start=0, stop=3000, step=50, value=[0, 3000], label="Significance", show_value=True
@@ -199,13 +199,13 @@ def _(df, mo):
     tilt = mo.ui.slider(-89.9, 89.9, 1, value=0, label="Tilt N-S", show_value=True)
     zoom = mo.ui.slider(10, 1000, 10, value=100, label="Zoom", show_value=True)
 
-    canvas_color = mo.ui.text(value="rgb(80,80,120)", label="Canvas")
-    land_color = mo.ui.text(value="#00008d", label="Land")
-    border_color = mo.ui.text(value="lightgrey", label="Border")
+    canvas_color = mo.ui.text(value="rgb(26,26,26)", label="Canvas")
+    land_color = mo.ui.text(value="#444488", label="Land")
+    border_color = mo.ui.text(value="darkblue", label="Border")
 
-    point_size = mo.ui.dropdown(_numeric, value="mag", label="Point size")
-    point_color = mo.ui.dropdown(_numeric, value="mag", label="Point colour")
-    point_opacity = mo.ui.dropdown(_numeric, value="sig", label="Point opacity")
+    point_size = mo.ui.dropdown(_numeric, value="sig", label="Point size")
+    point_color = mo.ui.dropdown(_numeric, value="mag", label="Point color")
+    point_opacity = mo.ui.dropdown(_numeric, value="mag", label="Point opacity")
 
     heat_x = mo.ui.dropdown(_numeric, value="time", label="Bin across (X)")
     heat_y = mo.ui.dropdown(_numeric, value="depth", label="Bin down (Y)")
@@ -222,7 +222,7 @@ def _(df, mo):
     mo.hstack(
         [
             mo.vstack([mo.md("**Map**"), projection, spin, tilt, zoom]),
-            mo.vstack([mo.md("**Colours**"), canvas_color, land_color, border_color]),
+            mo.vstack([mo.md("**Colors**"), canvas_color, land_color, border_color]),
             mo.vstack([mo.md("**Points**"), point_size, point_color, point_opacity]),
             mo.vstack([mo.md("**Heatmap**"), heat_x, heat_y, heat_metric, histograms]),
         ],

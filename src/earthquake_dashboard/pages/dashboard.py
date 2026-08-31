@@ -110,7 +110,7 @@ def build_mag_range():
             min=0,
             max=10,
             step=.1,
-            value=[6,9.1],
+            value=[2.0,9.1],
             marks=None,
             tooltip={'placement': 'bottom', 'always_visible': True, 'template': 'M {value}'},
             id='mag_range_slider',
@@ -308,22 +308,22 @@ def build_map_tools_widget():
 def build_map_colors_widget():
     widgets = []
     widgets.append(html.H5('Canvas Color:',
-        title='Any CSS colour; tints the whole figure, not just the globe.'))
+        title='Any CSS color; tints the whole figure, not just the globe.'))
     widgets.append(dcc.Input(
-        value='rgb(80,80,120)',
+        value='rgb(26,26,26)',
         id='map_background',
         className='text_input'
     ))
     widgets.append(html.H5('Land Color:'))
     widgets.append(dcc.Input(
-        value='#00008d',
+        value='#444488',
         id='map_fill',
         className='text_input'
     ))
     widgets.append(html.H5('Border Color:',
-        title='Country outlines only; the lat/lon grid keeps its default colour.'))
+        title='Country outlines only; the lat/lon grid keeps its default color.'))
     widgets.append(dcc.Input(
-        value='lightgrey',
+        value='darkblue',
         id='map_stroke',
         className='text_input'
     )) 
@@ -342,21 +342,21 @@ def build_map_aesthetics_widget(data):
         title='Scales each dot by area, 10 to 200 px.'))
     widget.append(dcc.Dropdown(
         options=cols,
-        value = 'mag',
+        value = 'sig',
         id='size_dropdown',
         className='dropdown'
     ))
     widget.append(html.H5('Point Color:'))
     widget.append(dcc.Dropdown(
         options=cols,
-        value = 'depth',
+        value = 'mag',
         id='color_dropdown',
         className='dropdown'
     ))
     widget.append(html.H5('Point Opacity:'))
     widget.append(dcc.Dropdown(
         options=cols,
-        value = 'sig',
+        value = 'mag',
         id='alpha_dropdown',
         className='dropdown'
     ))
@@ -390,9 +390,9 @@ def build_heatmap_aesthetics_widget(data):
         className='dropdown'
     ))
     # 'Cell Metric' rather than a second 'Color:' — this picks the statistic the
-    # cell colour reports, not a column like the map's Point Color.
+    # cell color reports, not a column like the map's Point Color.
     widget.append(html.H5('Cell Metric:',
-        title='The statistic each cell colour reports for the quakes inside it.'))
+        title='The statistic each cell color reports for the quakes inside it.'))
     widget.append(dcc.Dropdown(
         options=[{'label': 'Max magnitude', 'value': 'max(mag)'},
                  {'label': 'Mean depth', 'value': 'mean(depth)'},
@@ -635,5 +635,5 @@ def update_visualizer(data,
 #
 # id='layout' is load-bearing, not a leftover from the old callback chain:
 # styles.css keys the page's outer header/loader/viz grid off it, along with
-# the monospace font and the light text colour every widget inherits.
+# the monospace font and the light text color every widget inherits.
 layout = html.Div(build_page(), id='layout')
