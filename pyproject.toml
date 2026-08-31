@@ -28,6 +28,10 @@ packages = ["src/earthquake_dashboard"]
 line-length = 100
 target-version = "py311"
 
+[tool.ruff.lint.per-file-ignores]
+# A bare trailing expression is how a marimo cell declares its rendered output.
+"apps/marimo_app.py" = ["B018"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
 # E501: long Dash layout/callback lines are readable as-is

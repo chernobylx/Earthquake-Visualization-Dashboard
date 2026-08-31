@@ -21,6 +21,16 @@ vega_datasets = "*"
 dash-vega-components = "*"
 earthquake_dashboard = { path = ".", editable = true }
 
+# Alternate front-ends over the same DataLoader / DataVisualizer.
+[feature.alt.dependencies]
+marimo = "*"
+panel = "*"
+
+[feature.alt.tasks]
+marimo = "marimo edit apps/marimo_app.py"
+marimo-run = "marimo run apps/marimo_app.py"
+panel = "panel serve apps/panel_app.py --show"
+
 [feature.dev.dependencies]
 ruff = "*"
 pytest = "*"
@@ -29,10 +39,11 @@ jupyter = "*"
 
 [tasks]
 app    = "python -m earthquake_dashboard.app"
-lint   = "ruff check src tests"
-format = "ruff format src tests"
+lint   = "ruff check src tests apps"
+format = "ruff format src tests apps"
 test   = "pytest tests/ -v --tb=short"
 check  = { depends-on = ["lint", "test"] }
 
 [environments]
 default = { features = ["dev"], solve-group = "default" }
+alt = { features = ["dev", "alt"] }
