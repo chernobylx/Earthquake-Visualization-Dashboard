@@ -48,12 +48,17 @@ def _():
         c for c, t in COL_TYPES.items() if t.startswith(("float", "int", "datetime"))
     ]
 
+    # DataVisualizer asserts every one of these; mo.ui.dataframe transforms can
+    # drop columns, so the chart cell checks before handing the frame over.
+    REQUIRED_COLS = list(COL_TYPES)
+
     return (
         DT_FORMAT,
         DataLoader,
         DataVisualizer,
         NUMERIC_COLS,
         RequestParams,
+        REQUIRED_COLS,
         date,
         get_df,
         mo,
@@ -226,6 +231,29 @@ def _(get_df, mo):
 
 
 @app.cell
+def _(get_df, mo):
+    # The table above is for browsing; this is what the chart reads. Filtering
+    # or transforming here flows straight through to the map, histograms and
+    # heatmap (issues #14 and #16).
+    #
+    # tz-naive for the same reason as the table — marimo compares filter values
+    # as naive Timestamps. It matters more here: mo.ui.dataframe wraps its
+    # filtering in `except Exception`, so on a tz-aware column it would swallow
+    # the TypeError and hand back the UNFILTERED frame with no visible error.
+    _frame = get_df()
+    if _frame is None:
+        chart_source = None
+        _out = mo.md("*Fetch data to enable filtering.*")
+    else:
+        chart_source = mo.ui.dataframe(
+            _frame.assign(time=_frame["time"].dt.tz_localize(None))
+        )
+        _out = chart_source
+    _out
+    return (chart_source,)
+
+
+@app.cell
 def _(NUMERIC_COLS, mo):
     # --- chart controls -------------------------------------------------
     # Deliberately does NOT reference the loaded frame. Taking df as an input
@@ -301,11 +329,12 @@ def _(
     DataVisualizer,
     border_color,
     canvas_color,
-    get_df,
+    chart_source,
     heat_metric,
     heat_x,
     heat_y,
     histograms,
+    REQUIRED_COLS,
     land_color,
     mo,
     point_color,
@@ -318,12 +347,27 @@ def _(
 ):
     # Redraws whenever a control above changes; unlike the query cells this is
     # pure local computation. An explicit Render Chart button is issue #18.
-    _frame = get_df()
-    mo.stop(_frame is None, mo.md("*Fetch data to draw the chart.*"))
+    mo.stop(chart_source is None, mo.md("*Fetch data to draw the chart.*"))
+
+    # Whatever survives the filters above, not the whole download.
+    _frame = chart_source.value
+
+    # A transform can drop a column, and DataVisualizer asserts on all of them —
+    # say so plainly rather than surfacing an AssertionError.
+    _missing = [c for c in REQUIRED_COLS if c not in _frame.columns]
+    mo.stop(
+        bool(_missing),
+        mo.md(f":warning: The chart needs `{'`, `'.join(_missing)}` — a transform removed it."),
+    )
+    mo.stop(_frame.empty, mo.md(":warning: The filters match no events."))
     mo.stop(
         not histograms.value,
         mo.md(":warning: Pick at least one histogram variable."),
     )
+
+    # The filtering widget was handed a tz-naive copy (see the cell above);
+    # put the timezone back, because COL_TYPES demands datetime64[ns, UTC].
+    _frame = _frame.assign(time=_frame["time"].dt.tz_localize("UTC"))
 
     chart = DataVisualizer(_frame).create_chart(
         width=1200,
