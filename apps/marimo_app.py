@@ -24,16 +24,40 @@ def _():
 
     import marimo as mo
 
-    from earthquake_dashboard.data_loader import DT_FORMAT, DataLoader, RequestParams
+    from earthquake_dashboard.data_loader import (
+        COL_TYPES,
+        DT_FORMAT,
+        DataLoader,
+        RequestParams,
+    )
     from earthquake_dashboard.visualizer import DataVisualizer
+
+    # The loaded frame lives in state rather than being a cell's return value.
+    # mo.stop aborts the cell it is called in, so a guarded cell that returned
+    # `df` un-defined it on every unrelated rerun: moving a query slider re-ran
+    # the fetch cell, the button had already reset to False, and the table and
+    # chart vanished with it (issue #17). State survives a stopped cell.
+    get_df, set_df = mo.state(None)
+
+    # Encoding options come from the column contract, not from the loaded
+    # frame. Deriving them from `df` made every control cell depend on the
+    # data, so fetching rebuilt all fourteen widgets at their defaults and
+    # discarded the user's settings (issue #15). Fixed because
+    # DataLoader.preprocess always returns exactly these columns.
+    NUMERIC_COLS = [
+        c for c, t in COL_TYPES.items() if t.startswith(("float", "int", "datetime"))
+    ]
 
     return (
         DT_FORMAT,
         DataLoader,
         DataVisualizer,
+        NUMERIC_COLS,
         RequestParams,
         date,
+        get_df,
         mo,
+        set_df,
         timedelta,
     )
 
@@ -164,27 +188,51 @@ def _(DataLoader, count_button, current_params, mo):
 
 
 @app.cell
-def _(DataLoader, current_params, fetch_button, mo):
+def _(DataLoader, current_params, fetch_button, mo, set_df):
+    # This cell reruns whenever a query widget moves, because current_params
+    # references them all. The stop below is what keeps a slider drag from
+    # hitting the API — and because the frame goes to state rather than being
+    # returned, stopping no longer destroys it.
     mo.stop(not fetch_button.value, mo.md("*Press **Fetch data** to download.*"))
 
     _loader = DataLoader(current_params())
     _loader.query()
-    df = _loader.preprocess()
-    mo.md(f"Loaded **{len(df):,}** events.")
-    return (df,)
-
-
-@app.cell
-def _(df, mo):
-    mo.ui.table(df, page_size=10, selection=None)
+    _frame = _loader.preprocess()
+    set_df(_frame)
+    mo.md(f"Loaded **{len(_frame):,}** events.")
     return
 
 
 @app.cell
-def _(df, mo):
+def _(get_df, mo):
+    _frame = get_df()
+    if _frame is None:
+        _out = mo.md("*No data loaded yet.*")
+    else:
+        # marimo 0.24 parses a filter value with a naive datetime.fromisoformat
+        # and compares it straight against the column, so filtering a tz-aware
+        # column raises "Invalid comparison between dtype=datetime64[ns, UTC]
+        # and Timestamp" (issue #12) — and `time` is the first column anyone
+        # filters here. Hand the table a tz-naive copy; times are UTC either
+        # way. The frame the chart uses keeps its tz, which COL_TYPES requires
+        # and DataVisualizer asserts.
+        _out = mo.ui.table(
+            _frame.assign(time=_frame["time"].dt.tz_localize(None)),
+            page_size=10,
+            selection=None,
+        )
+    _out
+    return
+
+
+@app.cell
+def _(NUMERIC_COLS, mo):
     # --- chart controls -------------------------------------------------
-    # Options come from the frame, so this cell reruns when df changes.
-    _numeric = df.select_dtypes(include=["number", "datetime64[ns, UTC]"]).columns.tolist()
+    # Deliberately does NOT reference the loaded frame. Taking df as an input
+    # made marimo rerun this cell on every fetch, rebuilding all fourteen
+    # widgets at their defaults and throwing away the user's settings
+    # (issue #15). The option set is fixed by the column contract anyway.
+    _numeric = NUMERIC_COLS
 
     projection = mo.ui.dropdown(
         options={
@@ -253,7 +301,7 @@ def _(
     DataVisualizer,
     border_color,
     canvas_color,
-    df,
+    get_df,
     heat_metric,
     heat_x,
     heat_y,
@@ -268,14 +316,16 @@ def _(
     tilt,
     zoom,
 ):
-    # No render button: marimo reruns this the moment any control above changes,
-    # and unlike the query cells this is pure local computation.
+    # Redraws whenever a control above changes; unlike the query cells this is
+    # pure local computation. An explicit Render Chart button is issue #18.
+    _frame = get_df()
+    mo.stop(_frame is None, mo.md("*Fetch data to draw the chart.*"))
     mo.stop(
         not histograms.value,
         mo.md(":warning: Pick at least one histogram variable."),
     )
 
-    chart = DataVisualizer(df).create_chart(
+    chart = DataVisualizer(_frame).create_chart(
         width=1200,
         height=800,
         projection=projection.value,
