@@ -11,36 +11,23 @@ from earthquake_dashboard.visualizer import DataVisualizer
 
 dash.register_page(__name__)
 
-layout = html.Div(children=[
-    html.Div(['Hidden Div'], id='hidden_div', style={'display': 'none'}),
-    html.Div(children=['Page'], id='layout')
-])
+# The layout is assembled once at import (see the bottom of this file) rather
+# than through a cascade of callbacks. Only the three widgets whose dropdown
+# options come from the loaded frame are still built by a callback.
 
-@callback(
-        Output('layout', 'children'),
-        Input('hidden_div', 'children')
-)
-def build_page(input):
-    layout = []
-    layout.append(html.Div(['Data Loader'], id = 'loader', className='dashboard'))
-    layout.append(html.Div(['Visualizer'], id='visualizer', className='dashboard'))
-    return layout
+def build_page():
+    return [
+        html.Div(build_loader(), id='loader', className='dashboard'),
+        html.Div(build_visualizer(), id='visualizer', className='dashboard'),
+    ]
 
-@callback(
-        Output('loader', 'children'),
-        Input('layout', 'children')
-)
-def build_loader(input):
-    loader = []
-    loader.append(html.Div(['Control Panel'], id = 'loader_control_panel', className='control-panel'))
-    loader.append(html.Div(['Data Table'], id = 'loader_output', className='dashboard-output'))
-    return loader
+def build_loader():
+    return [
+        html.Div(build_loader_control_panel(), id='loader_control_panel', className='control-panel'),
+        html.Div(build_loader_output(), id='loader_output', className='dashboard-output'),
+    ]
 
-@callback(
-        Output('loader_output', 'children'),
-        Input('loader', 'children')
-)
-def build_loader_output(input):
+def build_loader_output():
     loader_output = []
     loader_output.append(dash_table.DataTable(
             id = 'data_table',
@@ -78,28 +65,22 @@ def build_loader_output(input):
     return loader_output
 
 
-@callback(
-        Output('loader_control_panel', 'children'),
-        Input('loader', 'children')
-)
-def build_loader_control_panel(input):
-    control_panel = []
-    control_panel.append(html.Div(['Date Range'], id = 'date_range', className='widget date-widget'))
-    control_panel.append(html.Div(['Magnitude'], id='mag_range', className='widget slider-widget'))
-    control_panel.append(html.Div(['Significance'], id='sig_range', className='widget slider-widget'))
-    control_panel.append(html.Div(['Depth'], id='depth_range', className='widget slider-widget'))
-    control_panel.append(html.Div(['Latitude'], id='latitude_range', className='widget slider-widget'))
-    control_panel.append(html.Div(['Longitude'], id='longitude_range', className='widget slider-widget'))
-    control_panel.append(html.Div(['Query Buttons'], id='loader_button_widget', className='widget button-widget'))
-    control_panel.append(html.Div([html.H5('Matching Events'), 'Press Preview Count'],
-                                  id='count_output', className='widget output-widget'))
-    return control_panel
+def build_loader_control_panel():
+    # Exactly eight children: .control-panel maps position to grid area through
+    # :nth-child(1..8), so adding or removing one reshuffles the whole panel.
+    return [
+        html.Div(build_date_range(), id='date_range', className='widget date-widget'),
+        html.Div(build_mag_range(), id='mag_range', className='widget slider-widget'),
+        html.Div(build_sig_range(), id='sig_range', className='widget slider-widget'),
+        html.Div(build_depth_range(), id='depth_range', className='widget slider-widget'),
+        html.Div(build_latitude_range(), id='latitude_range', className='widget slider-widget'),
+        html.Div(build_longitude_range(), id='longitude_range', className='widget slider-widget'),
+        html.Div(build_loader_buttons(), id='loader_button_widget', className='widget button-widget'),
+        html.Div([html.H5('Matching Events'), 'Press Preview Count'],
+                 id='count_output', className='widget output-widget'),
+    ]
 
-@callback(
-    Output('date_range', 'children'),
-    Input('loader_control_panel', 'children')
-)
-def build_date_range(input):
+def build_date_range():
     # h4 is the panel title, h5 a widget heading. This tile is plain block flow,
     # so it is the only loader slot that can carry the panel title without
     # adding a ninth child and shifting every grid area.
@@ -120,11 +101,7 @@ def build_date_range(input):
         className='widget-help'))
     return widget
 
-@callback(
-    Output('mag_range', 'children'),
-    Input('loader_control_panel', 'children')
-)
-def build_mag_range(input):
+def build_mag_range():
     widget = []
     widget.append(html.H5('Magnitude',
         title="Filters the event's preferred magnitude, usually moment magnitude."))
@@ -142,11 +119,7 @@ def build_mag_range(input):
     )
     return widget
 
-@callback(
-    Output('sig_range', 'children'),
-    Input('loader_control_panel', 'children')
-)
-def build_sig_range(input):
+def build_sig_range():
     widget = []
     widget.append(html.H5('Significance',
         title='USGS impact score combining magnitude, shaking and felt reports.'))
@@ -164,11 +137,7 @@ def build_sig_range(input):
     )
     return widget
 
-@callback(
-    Output('depth_range', 'children'),
-    Input('loader_control_panel', 'children')
-)
-def build_depth_range(input):
+def build_depth_range():
     widget = []
     widget.append(html.H5('Depth',
         title='Kilometres below sea level; negative values sit above it.'))
@@ -186,11 +155,7 @@ def build_depth_range(input):
     )
     return widget
 
-@callback(
-    Output('latitude_range', 'children'),
-    Input('loader_control_panel', 'children')
-)
-def build_latitude_range(input):
+def build_latitude_range():
     widget = []
     widget.append(html.H5('Latitude',
         title='South and north edges of the search box; pair it with Longitude.'))
@@ -208,11 +173,7 @@ def build_latitude_range(input):
     )
     return widget
 
-@callback(
-    Output('longitude_range', 'children'),
-    Input('loader_control_panel', 'children')
-)
-def build_longitude_range(input):
+def build_longitude_range():
     widget = []
     widget.append(html.H5('Longitude',
         title='West and east edges of the box; it cannot cross the date line.'))
@@ -233,11 +194,7 @@ def build_longitude_range(input):
 
 
 
-@callback(
-    Output('loader_button_widget', 'children'),
-    Input('loader_control_panel', 'children')
-)
-def build_loader_buttons(input):
+def build_loader_buttons():
     widget = []
     # No heading here: .button-widget is a three-row grid holding exactly these
     # three buttons, so a fourth child would spill into an implicit row.
@@ -250,47 +207,44 @@ def build_loader_buttons(input):
 
     return widget
 
-@callback(
-        Output('visualizer', 'children'),
-        Input('layout', 'children')
-)
-def build_visualizer(input):
-    visualizer = []
-    visualizer.append(html.Div(['Control Panel'], id = 'visualizer_control_panel', className='control-panel'))
-    visualizer.append(html.Div(['Visualization'], id = 'visualizer_output', className='dashboard-output visualization'))
-    visualizer.append(dcc.Store(id='visualizer_dimensions', data={'width': None, 'height': None}))
-    return visualizer
+def build_visualizer():
+    return [
+        html.Div(build_visualizer_control_panel(), id='visualizer_control_panel',
+                 className='control-panel'),
+        html.Div(['Visualization'], id='visualizer_output',
+                 className='dashboard-output visualization'),
+        dcc.Store(id='visualizer_dimensions', data={'width': None, 'height': None}),
+    ]
 
-@callback(
-        Output('visualizer_control_panel', 'children'),
-        Input('visualizer', 'children')
-)
-def build_visualizer_control_panel(input):
-    control_panel = []
-    control_panel.append(html.Div(['Projection'], id='projection_widget', className='widget dropdown-widget'))
-    control_panel.append(html.Div(['Globe Orientation'], id='map_tools_widget', className='widget slider-widget'))
-    control_panel.append(html.Div(['Map Colors'], id='map_colors_widget', className='widget text-widget'))
-    control_panel.append(html.Div(['Point Encoding'], id='map_aesthetics_widget', className='widget dropdown-widget'))
-    control_panel.append(html.Div(['Heatmap'], id='heatmap_aesthetics_widget', className='widget dropdown-widget'))
-    control_panel.append(html.Div(['Histograms'], id='filter_widget', className='widget dropdown-widget'))
-    # This tile exists to hold grid slot w7: without it the Visualize button
-    # shifts into w7. It now carries the two behaviours nothing else explains.
-    control_panel.append(html.Div([
-        html.H5('How To Read'),
-        html.Div('Drag across the map or any histogram to filter every panel.',
-                 className='widget-help'),
-        html.Div('Nothing redraws until you press Render Chart.',
-                 className='widget-help'),
-    ], id='visualizer_widget7', className='widget'))
+def build_visualizer_control_panel():
+    # Exactly eight children, as in the loader panel. Slots 4, 5 and 6 start
+    # empty: their dropdown options are derived from the loaded frame, so they
+    # are the only tiles still filled in by a callback.
+    return [
+        html.Div(build_projection_widget(), id='projection_widget',
+                 className='widget dropdown-widget'),
+        html.Div(build_map_tools_widget(), id='map_tools_widget',
+                 className='widget slider-widget'),
+        html.Div(build_map_colors_widget(), id='map_colors_widget',
+                 className='widget text-widget'),
+        html.Div(id='map_aesthetics_widget', className='widget dropdown-widget'),
+        html.Div(id='heatmap_aesthetics_widget', className='widget dropdown-widget'),
+        html.Div(id='filter_widget', className='widget dropdown-widget'),
+        # This tile exists to hold grid slot w7: without it the Render Chart
+        # button shifts into w7. It carries the two behaviours nothing else
+        # explains.
+        html.Div([
+            html.H5('How To Read'),
+            html.Div('Drag across the map or any histogram to filter every panel.',
+                     className='widget-help'),
+            html.Div('Nothing redraws until you press Render Chart.',
+                     className='widget-help'),
+        ], id='visualizer_widget7', className='widget'),
+        html.Div(build_viz_button_widget(), id='viz_button_widget',
+                 className='widget button-widget'),
+    ]
 
-    control_panel.append(html.Div(['Render'], id='viz_button_widget', className='widget button-widget'))
-    return control_panel
-
-@callback(
-        Output('projection_widget', 'children'),
-        Input('visualizer_control_panel', 'children')
-)
-def build_projection_widget(input):
+def build_projection_widget():
     widget = []
     # #projection_widget is overridden to a single column, so an extra child
     # cannot scramble label/control pairing — the panel title goes here.
@@ -310,11 +264,7 @@ def build_projection_widget(input):
 
     return widget
 
-@callback(
-        Output('map_tools_widget', 'children'),
-        Input('visualizer_control_panel', 'children')
-)
-def build_map_tools_widget(input):
+def build_map_tools_widget():
     widget = []
     widget.append(html.H5('Spin East-West:',
         title='Drag right and the map centre moves west.'))
@@ -355,11 +305,7 @@ def build_map_tools_widget(input):
 
     return widget
 
-@callback(
-        Output('map_colors_widget', 'children'),
-        Input('visualizer_control_panel', 'children')
-)
-def build_map_colors_widget(input):
+def build_map_colors_widget():
     widgets = []
     widgets.append(html.H5('Canvas Color:',
         title='Any CSS colour; tints the whole figure, not just the globe.'))
@@ -481,11 +427,7 @@ def build_filter_widget(data):
     ))
 
     return widget
-@callback(
-    Output('viz_button_widget', 'children'),
-    Input('visualizer_control_panel', 'children')
-)
-def build_viz_button_widget(input):
+def build_viz_button_widget():
     widget = []
     widget.append(html.H5('Apply Settings',
         title='Every control above is read fresh at the moment you click.'))
@@ -685,3 +627,13 @@ def update_visualizer(data,
         opt={"renderer": 'svg', 'actions': False},
         spec=spec
     )
+
+
+# Built once at import. Dash reads this after every builder above is defined,
+# so the browser receives the whole control panel in the first response instead
+# of assembling it through a chain of callback round trips.
+#
+# id='layout' is load-bearing, not a leftover from the old callback chain:
+# styles.css keys the page's outer header/loader/viz grid off it, along with
+# the monospace font and the light text colour every widget inherits.
+layout = html.Div(build_page(), id='layout')
