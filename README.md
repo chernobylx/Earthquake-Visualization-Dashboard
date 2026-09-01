@@ -200,12 +200,19 @@ pixi run bundle
 It hoists the package contents to the bundle root, rewrites those imports to plain
 module imports, writes a `requirements.txt` from the dependency list in
 `pyproject.toml` — so the `altair>=5,<6` and `pandas>=2,<3` pins survive the trip — and
-then imports the result as `app` to prove the flattening broke nothing. Output is
+then imports the result as a module to prove the flattening broke nothing. Output is
 `dist/earthquake-dashboard-plotly/` and a matching `.zip`, both gitignored.
 
-Drag that directory onto the upload area at <https://cloud.plotly.com/>, set the
-entrypoint to `app.py`, and choose Python 3.13. The `.zip` is for handing the same
-bundle to someone else; the UI itself wants files or folders.
+The app module is renamed to `app2.py` on the way in. Plotly Cloud fixes an app's
+entrypoint at its *first* publish and will not change it afterwards, and the live app
+was first published from a copy whose entrypoint was `app2.py`; uploading an `app.py`
+to it gets you a boot loop of `FileNotFoundError: '/home/appuser/app/app2.py'` in the
+runtime log. Publishing a *new* app instead? Pass `--entrypoint app.py`, the name Cloud
+auto-detects.
+
+Drag that directory onto the upload area at <https://cloud.plotly.com/> and choose
+Python 3.13. The `.zip` is for handing the same bundle to someone else; the UI itself
+wants files or folders.
 
 `pyproject.toml` is deliberately not shipped: its `[build-system]` section points
 hatchling at `src/earthquake_dashboard`, a path the flattened bundle does not have.
@@ -227,6 +234,9 @@ Two details decide whether this can be automated:
 - `--name` **always creates a new app**. Updating an existing one needs `--app-id`, or a
   committed `plotly-cloud.toml` — the CLI writes `name`, `app_id`, `app_url`, and the
   team fields there on first publish, and reads them back on later ones.
+- `--entrypoint-module` is set once at first publish and silently ignored on every
+  update after it, which is why the bundle renames the app module rather than the app
+  being repointed at `app.py`.
 - `plotly user login` is a browser OAuth flow, so CI needs an API key in `PLOTLY_API_KEY`
   instead. API keys are a Pro-plan feature; the free plan covers one app and interactive
   publishing only.

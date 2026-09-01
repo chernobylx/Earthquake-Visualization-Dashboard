@@ -12,9 +12,17 @@ Dependencies ship as ``requirements.txt`` rather than the project's own
 ``pyproject.toml``: that file's ``[build-system]`` section points hatchling at
 ``src/earthquake_dashboard``, a path the flattened bundle does not have.
 
+The entrypoint is renamed on the way in. Plotly Cloud fixes an app's entrypoint
+module at its *first* publish and refuses to change it afterwards, and the live
+app was first published from a copy whose entrypoint was ``app2.py``. Uploading
+an ``app.py`` to it makes gunicorn fail to boot with FileNotFoundError on
+``app2.py``, so that name is the default here. A brand-new app can take
+``--entrypoint app.py``, which is what Cloud auto-detects.
+
 Usage:
-    pixi run bundle              # dist/earthquake-dashboard-plotly/ + .zip
-    pixi run bundle --no-zip     # directory only, ready to drag into the UI
+    pixi run bundle                          # dist/earthquake-dashboard-plotly/ + .zip
+    pixi run bundle --entrypoint app.py      # for a new app, not the live one
+    pixi run bundle --no-zip                 # directory only, to drag into the UI
 """
 
 import argparse
@@ -31,8 +39,11 @@ REPO = Path(__file__).resolve().parents[1]
 PACKAGE = REPO / "src" / "earthquake_dashboard"
 PYPROJECT = REPO / "pyproject.toml"
 
-# The entrypoint Plotly Cloud should be pointed at, once flattened.
-ENTRYPOINT = "app.py"
+# The package module that defines the Dash app, and the name it must take in the
+# bundle. They differ because the live app's entrypoint is frozen as `app2` — see
+# the module docstring.
+APP_MODULE = "app.py"
+DEFAULT_ENTRYPOINT = "app2.py"
 
 # 80 MiB in the web UI, 200 MiB from the CLI or dev tools. Check against the
 # tighter of the two, since the UI is the path this bundle exists to serve.
@@ -59,10 +70,10 @@ def collect() -> list[Path]:
     return files
 
 
-def flatten(files: list[Path], out: Path) -> None:
+def flatten(files: list[Path], out: Path, entrypoint: str) -> None:
     """Copy the package contents to `out`, rewriting package-absolute imports."""
     for rel in files:
-        target = out / rel
+        target = out / (entrypoint if str(rel) == APP_MODULE else rel)
         target.parent.mkdir(parents=True, exist_ok=True)
         if rel.suffix == ".py":
             source = (PACKAGE / rel).read_text(encoding="utf-8")
@@ -93,9 +104,9 @@ def write_requirements(out: Path) -> list[str]:
     return deps
 
 
-def import_check(out: Path) -> None:
+def import_check(out: Path, entrypoint: str) -> None:
     """Import the flattened entrypoint the way the platform will."""
-    module = ENTRYPOINT.removesuffix(".py")
+    module = entrypoint.removesuffix(".py")
     result = subprocess.run(
         [sys.executable, "-c", f"import {module}"],
         cwd=out,
@@ -130,6 +141,12 @@ def main() -> None:
         default=REPO / "dist" / "earthquake-dashboard-plotly",
         help="bundle directory (default: dist/earthquake-dashboard-plotly, gitignored)",
     )
+    parser.add_argument(
+        "--entrypoint",
+        default=DEFAULT_ENTRYPOINT,
+        help=f"name for the app module in the bundle (default: {DEFAULT_ENTRYPOINT}, "
+        "the name the live app is frozen to)",
+    )
     parser.add_argument("--no-zip", action="store_true", help="skip the .zip")
     parser.add_argument(
         "--no-check",
@@ -143,13 +160,17 @@ def main() -> None:
         shutil.rmtree(out)
     out.mkdir(parents=True)
 
+    entrypoint = args.entrypoint
+    if not entrypoint.endswith(".py"):
+        entrypoint += ".py"
+
     files = collect()
-    flatten(files, out)
+    flatten(files, out, entrypoint)
     deps = write_requirements(out)
 
     if not args.no_check:
-        import_check(out)
-        print(f"import check: `import {ENTRYPOINT.removesuffix('.py')}` OK")
+        import_check(out, entrypoint)
+        print(f"import check: `import {entrypoint.removesuffix('.py')}` OK")
 
     total = 0
     print(f"\n{out.relative_to(REPO)}/")
@@ -167,7 +188,7 @@ def main() -> None:
         zip_path = archive(out)
         print(f"\nzipped  {zip_path.relative_to(REPO)}  ({zip_path.stat().st_size / 1024:.1f} KiB)")
 
-    print(f"\nEntrypoint: {ENTRYPOINT}   Dependencies: {len(deps)} in requirements.txt")
+    print(f"\nEntrypoint: {entrypoint}   Dependencies: {len(deps)} in requirements.txt")
     print("Upload at https://cloud.plotly.com/ -> Publish, and pick Python 3.13.")
 
 
