@@ -92,6 +92,14 @@ pixi run -e alt marimo-edit    # marimo, editable notebook
 pixi run -e alt panel-app      # Panel
 ```
 
+[![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/chernobylx/Earthquake-Visualization-Dashboard/blob/main/apps/marimo_app.py)
+
+The marimo notebook also runs without a checkout. [molab](https://molab.marimo.io)
+mirrors it straight from this repository — push to `main` and the link above follows —
+and readers can run it on an ephemeral server or fork it without logging in. The
+notebook carries PEP 723 script metadata declaring the package as a path source, which
+is what lets molab, and `marimo edit --sandbox`, build an environment for it.
+
 The marimo notebook follows the same order as the Dash app — set a query, **Preview
 count**, **Fetch data**, then **Render chart** — with two differences. A
 `mo.ui.dataframe` sits between the table and the chart, so filters and transforms
