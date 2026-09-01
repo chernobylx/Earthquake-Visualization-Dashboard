@@ -136,6 +136,7 @@ exercised directly by the test suite, without standing up a server.
 | `notebooks/` | `eq-dashboard.ipynb`, the self-contained ipywidgets prototype this dashboard grew out of |
 | `docs/figures/` | Images used in this README |
 | `docs/make_figures.mjs` | Regenerates those images by driving the running app with headless Chrome |
+| `scripts/bundle_plotly.py` | Flattens the package into a Plotly Cloud upload bundle (`pixi run bundle`) |
 | `pixi.toml` / `pyproject.toml` | Environment, packaging, and tool configuration |
 
 ## Development
@@ -155,7 +156,9 @@ fixed record counts — the catalog is revised over time, so pinning an exact nu
 a historical window makes the suite fail for reasons that have nothing to do with the
 code.
 
-CI runs the same lint and tests on Python 3.11 and 3.12.
+CI runs the same lint and tests on Python 3.11 and 3.12. It lints `src` and `tests`,
+while `pixi run lint` also covers `apps` and `scripts` — a reason to run the pixi task
+locally before pushing front-end or tooling changes.
 
 ### Regenerating the README figures
 
@@ -182,3 +185,61 @@ mismatch and falls back to best-effort handling of anything v6-specific.
 The deployed copy is the same code as `src/earthquake_dashboard/`, flattened
 (`app2.py`, `DataLoader.py`, `DataVisualizer.py`, `pages/`) to suit the platform, with
 its conda environment captured in a `Viz.yaml` export.
+
+### Bundling for upload
+
+The Cloud UI takes a folder of app files, not a `src`-layout package. Whatever you
+upload is what lands on `sys.path`, and Plotly Cloud installs your dependencies but not
+your project — so `from earthquake_dashboard.data_loader import ...` has nothing to
+resolve against. `pixi run bundle` builds the flattened copy for you:
+
+```bash
+pixi run bundle
+```
+
+It hoists the package contents to the bundle root, rewrites those imports to plain
+module imports, writes a `requirements.txt` from the dependency list in
+`pyproject.toml` — so the `altair>=5,<6` and `pandas>=2,<3` pins survive the trip — and
+then imports the result as a module to prove the flattening broke nothing. Output is
+`dist/earthquake-dashboard-plotly/` and a matching `.zip`, both gitignored.
+
+The app module is renamed to `app2.py` on the way in. Plotly Cloud fixes an app's
+entrypoint at its *first* publish and will not change it afterwards, and the live app
+was first published from a copy whose entrypoint was `app2.py`; uploading an `app.py`
+to it gets you a boot loop of `FileNotFoundError: '/home/appuser/app/app2.py'` in the
+runtime log. Publishing a *new* app instead? Pass `--entrypoint app.py`, the name Cloud
+auto-detects.
+
+Drag that directory onto the upload area at <https://cloud.plotly.com/> and choose
+Python 3.13. The `.zip` is for handing the same bundle to someone else; the UI itself
+wants files or folders.
+
+`pyproject.toml` is deliberately not shipped: its `[build-system]` section points
+hatchling at `src/earthquake_dashboard`, a path the flattened bundle does not have.
+
+### Redeploying
+
+Plotly Cloud now has a CLI, which publishes a whole project directory rather than a
+hand-flattened copy, and skips anything matched by `.gitignore` — so `.pixi/` and `data/`
+stay out of the upload:
+
+```bash
+pip install "dash[cloud]"
+plotly user login
+plotly app publish --app-id <id>
+```
+
+Two details decide whether this can be automated:
+
+- `--name` **always creates a new app**. Updating an existing one needs `--app-id`, or a
+  committed `plotly-cloud.toml` — the CLI writes `name`, `app_id`, `app_url`, and the
+  team fields there on first publish, and reads them back on later ones.
+- `--entrypoint-module` is set once at first publish and silently ignored on every
+  update after it, which is why the bundle renames the app module rather than the app
+  being repointed at `app.py`.
+- `plotly user login` is a browser OAuth flow, so CI needs an API key in `PLOTLY_API_KEY`
+  instead. API keys are a Pro-plan feature; the free plan covers one app and interactive
+  publishing only.
+
+Neither the CLI path nor a CI workflow is wired up here yet — the live app was published
+through the web UI, from a bundle like the one `pixi run bundle` now produces.
