@@ -16,6 +16,13 @@
 # # environment.
 # [tool.uv.sources]
 # earthquake-dashboard = { git = "https://github.com/chernobylx/Earthquake-Visualization-Dashboard", branch = "main" }
+#
+# # Dark, to match the Dash app. This has to live in the script block rather
+# # than in pyproject.toml for the same reason the dependencies do: molab only
+# # ever sees this one file. marimo.App() takes no theme argument and silently
+# # ignores one, and .marimo.toml is per-machine.
+# [tool.marimo.display]
+# theme = "dark"
 # ///
 """Earthquake dashboard as a marimo notebook.
 
@@ -45,6 +52,7 @@ app = marimo.App(
 def _():
     from datetime import date, timedelta
 
+    import altair as alt
     import marimo as mo
 
     from earthquake_dashboard.data_loader import (
@@ -54,6 +62,24 @@ def _():
         RequestParams,
     )
     from earthquake_dashboard.visualizer import DataVisualizer
+
+    # Serve the chart's data as a file instead of inlining it in the spec.
+    # visualizer.py calls alt.data_transformers.disable_max_rows() at import,
+    # which leaves altair's *default* transformer active, so the whole frame
+    # is embedded in the spec and marimo ships the cell output as one ~1.1 MiB
+    # websocket message — the only message in the app within two orders of
+    # magnitude of that, and over the 1 MiB per-message ceiling common to edge
+    # proxies. Measured on a 30-day query: 1,153,816 bytes inline against
+    # 15,048 with this enabled, for a pixel-identical chart.
+    #
+    # It has to be enabled globally, not around create_chart: the frame is
+    # serialised later, when marimo formats the cell output, so a `with` block
+    # here changes nothing. It stays in the notebook rather than in
+    # visualizer.py because Dash and Panel import that too, and marimo only
+    # registers this transformer inside its own runtime — hence the guard,
+    # which keeps `uv run --script` working, where it is absent.
+    if "marimo_csv" in alt.data_transformers.names():
+        alt.data_transformers.enable("marimo_csv")
 
     # The loaded frame lives in state rather than being a cell's return value.
     # mo.stop aborts the cell it is called in, so a guarded cell that returned
