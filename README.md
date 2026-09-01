@@ -13,7 +13,7 @@ Vega-Lite selections, so a brush drawn in any one of them filters all the others
 
 **[Try the live dashboard](https://0be82526-8d32-4767-bbed-2b63946ff944.plotly.app/dashboard)** — hosted on Plotly Cloud, querying the USGS catalog in real time.
 
-![Linked views over 2,251 M2.5+ earthquakes from the past 30 days: a world map colored by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
+![Linked views over 2,207 M2.5+ earthquakes from the past 30 days: a world map colored by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
 
 ## Features
 
@@ -32,7 +32,7 @@ Vega-Lite selections, so a brush drawn in any one of them filters all the others
   yearly, monthly, and daily tick formats based on the span of the loaded data, so a
   one-month query doesn't render every tick as the same month.
 
-![The data loader and visualizer control panels, with 2,251 records loaded into the sortable data table](docs/figures/app-ui.png)
+![The data loader and visualizer control panels, with 2,207 records loaded into the sortable data table](docs/figures/app-ui.png)
 
 ## Quick start
 
@@ -74,6 +74,35 @@ Open <http://127.0.0.1:8050>. The landing page carries a quick-start guide; clic
 **Clear Table** empties the table and resets the count. Set `DASH_DEBUG=1` to start the app
 with Dash's debug tooling enabled.
 
+## Alternate front-ends
+
+The same `DataLoader` and `DataVisualizer` drive two other apps under `apps/`, so the
+chart is identical in all three and only the widget layer differs:
+
+```bash
+pixi run -e alt marimo-app      # marimo notebook, read-only app mode
+pixi run -e alt marimo-edit     # the same notebook, editable
+pixi run -e alt panel-app       # Panel
+```
+
+[![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/chernobylx/Earthquake-Visualization-Dashboard/blob/main/apps/marimo_app.py)
+
+The marimo notebook also runs in the cloud with no checkout: the badge opens it in
+[molab](https://molab.marimo.io), which builds its environment from the inline script
+metadata at the top of the file.
+
+![The marimo front-end: the same map, histograms and heatmap under marimo's grid layout, with the loaded frame in a sortable table and the chart controls above it](docs/figures/marimo-app.png)
+
+marimo differs from Dash in two ways worth knowing. Its cells are reactive, so the
+controls take effect without an Apply step — except the fetch and the chart, which stay
+behind **Fetch data** and **Render chart** so a slider drag does not re-query USGS or
+re-encode thousands of rows per frame. And the loaded frame sits in `mo.ui.dataframe`,
+whose filters narrow what the chart sees.
+
+The task names deliberately differ from the `marimo` and `panel` executables: a pixi task
+named `panel` shadows the binary, and extra arguments then get appended to the task's own
+command and silently produce a mangled invocation.
+
 ## The data
 
 Records come from the USGS FDSN event API on demand and are never committed; anything
@@ -111,6 +140,13 @@ cannot act as a data predicate the way the histogram brushes can.
 Cross-filtering itself is unaffected — brushing a histogram does filter both the map and
 the heatmap.
 
+**A query shorter than 12 days gives the heatmap a zero-width time bin.** The bin step is
+sized as `int(n_days / 12)` days, so any window under twelve days floors it to `0`. The
+spec still compiles — Vega-Lite does not error on `"bin": {"step": 0}` — so it fails
+quietly rather than loudly, and the time histogram is sized the same way. The shipped
+30-day default gives a 2-day step, so you only reach it by narrowing the date range
+([#29](https://github.com/chernobylx/Earthquake-Visualization-Dashboard/issues/29)).
+
 ## Architecture
 
 The code is a small installable package under `src/earthquake_dashboard/`, in three
@@ -134,8 +170,11 @@ exercised directly by the test suite, without standing up a server.
 | `src/earthquake_dashboard/assets/` | Stylesheet driving the dashboard's grid layout |
 | `tests/` | pytest suite |
 | `notebooks/` | `eq-dashboard.ipynb`, the self-contained ipywidgets prototype this dashboard grew out of |
+| `apps/` | `marimo_app.py` and `panel_app.py`, alternate front-ends over the same two classes |
+| `apps/layouts/` | `marimo_app.grid.json`, the grid layout marimo reads in app mode — one entry per cell, in source order |
 | `docs/figures/` | Images used in this README |
-| `docs/make_figures.mjs` | Regenerates those images by driving the running app with headless Chrome |
+| `docs/make_figures.mjs` / `docs/make_marimo_figure.mjs` | Regenerate those images by driving the running apps with headless Chrome |
+| `docs/cdp.mjs` | The DevTools Protocol client both figure scripts share |
 | `pixi.toml` / `pyproject.toml` | Environment, packaging, and tool configuration |
 
 ## Development
@@ -163,12 +202,26 @@ The figures under `docs/figures/` are captured from the real app rather than han
 Start the app, then drive it with headless Chrome:
 
 ```bash
-CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe" node docs/make_figures.mjs
+export CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
+pixi run app                      # in one shell
+node docs/make_figures.mjs        # dashboard.png and app-ui.png
 ```
 
 It loads a query, sets the map to colour by magnitude, clicks through Preview Count /
 Render Chart, and writes both PNGs. `MIN_MAG`, `COLOR_VAR`, `BASE`, and `OUTDIR` override the
 defaults. Node 22+ only — no npm install, it uses the built-in WebSocket to speak CDP.
+
+The marimo figure comes from its own script, because that app has to be clicked through
+rather than waited on, and its widgets live in shadow roots:
+
+```bash
+pixi run -e alt marimo-app        # in one shell
+node docs/make_marimo_figure.mjs  # marimo-app.png
+```
+
+`CHROME` can be any Chrome or Chromium binary. Under WSL, point it at a Linux build
+rather than the Windows one — Windows Chrome's debugging port is not reachable across
+the WSL network boundary, so the script cannot attach to it.
 
 ## Deployment
 
