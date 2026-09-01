@@ -1,11 +1,30 @@
+# /// script
+# # Upper bound is load-bearing: uv takes the newest interpreter the range
+# # allows, and on 3.14 altair 5.5 fails at import — its generated _config.py
+# # builds a TypedDict with closed=True, which 3.14's typing rejects.
+# requires-python = ">=3.11,<3.14"
+# dependencies = [
+#     "marimo",
+#     "earthquake-dashboard",
+# ]
+#
+# [tool.uv.sources]
+# earthquake-dashboard = { path = "../", editable = true }
+# ///
 """Earthquake dashboard as a marimo notebook.
 
 Same two layers as the Dash app — earthquake_dashboard.DataLoader for the USGS
 query and DataVisualizer for the linked chart — with marimo's reactive cells and
 mo.ui widgets in place of Dash callbacks.
 
-    pixi run -e alt marimo-run     # read-only app
-    pixi run -e alt marimo         # editable notebook
+    pixi run -e alt marimo-app     # read-only app
+    pixi run -e alt marimo-edit    # editable notebook
+
+The script metadata above is what lets the notebook stand on its own away from
+this checkout — `marimo edit --sandbox`, and molab, build an environment from
+it. The package is a path source because molab makes the whole repository
+available to a notebook opened from GitHub, so `../` is the repo root there
+just as it is here. pixi ignores the block entirely.
 """
 
 import marimo
