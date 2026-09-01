@@ -1,11 +1,34 @@
+# /// script
+# # Upper bound is load-bearing: uv takes the newest interpreter the range
+# # allows, and on 3.14 altair 5.5 fails at import — its generated _config.py
+# # builds a TypedDict with closed=True, which 3.14's typing rejects.
+# requires-python = ">=3.11,<3.14"
+# dependencies = [
+#     "marimo",
+#     "earthquake-dashboard",
+# ]
+#
+# # molab mirrors this one file, not the repository around it, so the package
+# # has to come from somewhere absolute — an earlier attempt used a "../" path
+# # source and could not resolve it there (#31, reverted in #35). Installing
+# # from git keeps molab on whatever main holds, with no release step. pixi
+# # ignores this block; local work still uses the editable install in the alt
+# # environment.
+# [tool.uv.sources]
+# earthquake-dashboard = { git = "https://github.com/chernobylx/Earthquake-Visualization-Dashboard", branch = "main" }
+# ///
 """Earthquake dashboard as a marimo notebook.
 
 Same two layers as the Dash app — earthquake_dashboard.DataLoader for the USGS
 query and DataVisualizer for the linked chart — with marimo's reactive cells and
 mo.ui widgets in place of Dash callbacks.
 
-    pixi run -e alt marimo-run     # read-only app
-    pixi run -e alt marimo         # editable notebook
+    pixi run -e alt marimo-app     # read-only app
+    pixi run -e alt marimo-edit    # editable notebook
+
+The script metadata above is what lets the notebook run away from this checkout:
+`marimo edit --sandbox`, `uv run --script`, and molab all build an environment
+from it.
 """
 
 import marimo
