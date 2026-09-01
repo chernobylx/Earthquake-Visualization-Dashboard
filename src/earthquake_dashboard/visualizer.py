@@ -1,5 +1,6 @@
 import re
 from datetime import timedelta
+from typing import NamedTuple
 
 import altair as alt
 import pandas as pd
@@ -13,6 +14,22 @@ alt.data_transformers.disable_max_rows()
 # so the cell can name it. Matches those shorthands and nothing else: mean(depth)
 # has no owning record to point at.
 EXTREMUM = re.compile(r'^(max|min)\((\w+)\)$')
+
+
+class AxisSpec(NamedTuple):
+    """How one heatmap axis is binned, scaled and labelled.
+
+    Built once and used by both heatmap builders, which differ only in whether
+    they bin in the encoding or in a transform.
+    """
+    var: str
+    bin: alt.BinParams
+    axis: alt.Axis
+    type: str          # 'T' or 'Q', the Vega-Lite type shorthand
+    title: str         # axis title
+    tip_title: str     # tooltip row label
+    tip_format: object = alt.Undefined
+    scale: object = alt.Undefined
 
 
 
@@ -40,73 +57,46 @@ class DataVisualizer:
 
         n_days = int(time_range / timedelta(days=1))
         step = int(n_days/12) * day
+
+        if x_var == 'time':
+            x = AxisSpec(x_var, alt.BinParams(step = step), alt.Axis(format = format),
+                         'T', 'Date', 'Time', format)
+        else:
+            x = AxisSpec(x_var, alt.BinParams(), alt.Axis(),
+                         'Q', x_var.capitalize(), x_var.capitalize())
+
+        if y_var == 'time':
+            y = AxisSpec(y_var, alt.BinParams(step = 365 * day), alt.Axis(format = '%Y'),
+                         'T', 'Date', 'Time', '%Y')
+        else:
+            y = AxisSpec(y_var, alt.BinParams(), alt.Axis(),
+                         'Q', y_var.capitalize(), y_var.capitalize(),
+                         scale = alt.Scale(reverse = (y_var == 'depth')))
+
+        extremum = EXTREMUM.match(color_var)
+        if extremum:
+            return self._extremum_heatmap(filters, width, height,
+                                          *extremum.groups(), color_var, x, y)
+
         # Every tooltip below repeats its channel's bin. A tooltip on the raw
         # field instead adds that field to the aggregate's groupby, which splits
         # each cell by exact time or depth: the rects overplot and the colour
         # stops being the bin's true extremum.
-        if x_var == 'time':
-            X = alt.X('time:T',
-                      axis = alt.Axis(format = format),
-                      bin = alt.BinParams(step = step),
-                      title = 'Date')
-            X_tooltip = alt.Tooltip('time:T',
-                                    bin = alt.BinParams(step = step),
-                                    format = format,
-                                    title='Time')
-        else:
-            X = alt.X(x_var+':Q',
-                      axis = alt.Axis(),
-                      bin = alt.BinParams(),
-                      title = x_var.capitalize())
-            X_tooltip = alt.Tooltip(x_var+':Q',
-                                    bin = alt.BinParams(),
-                                    title=x_var.capitalize())
-
-        reversed_y = (y_var == 'depth')
-        if y_var == 'time':
-            Y = alt.Y('time:T',
-                      axis = alt.Axis(format = '%Y'),
-                      bin = alt.BinParams(step = 365 * day),
-                      title = 'Date')
-            Y_tooltip = alt.Tooltip('time:T',
-                                    bin = alt.BinParams(step = 365 * day),
-                                    format = '%Y',
-                                    title='Time')
-        else:
-            Y = alt.Y(y_var+':Q',
-                      axis = alt.Axis(),
-                      scale = alt.Scale(reverse = reversed_y),
-                      bin = alt.BinParams(),
-                      title = y_var.capitalize())
-            Y_tooltip = alt.Tooltip(y_var+':Q',
-                                    bin = alt.BinParams(),
-                                    title=y_var.capitalize())
-
-        Color = alt.Color(color_var,
-                          scale = alt.Scale(scheme = 'magma'))
-
-
-        tooltips = [X_tooltip,
-                    Y_tooltip,
-                    alt.Tooltip(color_var, title = color_var.capitalize())]
-
-        # When the cell metric is an extremum, one earthquake owns the value —
-        # argmax/argmin over the same bin picks it out, so the tooltip can say
-        # where it was. Leads the list, as the map's point tooltip does.
-        extremum = EXTREMUM.match(color_var)
-        if extremum:
-            op, field = extremum.groups()
-            arg = alt.ArgmaxDef(argmax = field) if op == 'max' else alt.ArgminDef(argmin = field)
-            tooltips.insert(0, alt.Tooltip(field = 'place',
-                                           type = 'nominal',
-                                           aggregate = arg,
-                                           title = 'Location'))
+        X = alt.X(f'{x.var}:{x.type}', axis = x.axis, bin = x.bin, title = x.title)
+        X_tooltip = alt.Tooltip(f'{x.var}:{x.type}', bin = x.bin,
+                                format = x.tip_format, title = x.tip_title)
+        Y = alt.Y(f'{y.var}:{y.type}', axis = y.axis, bin = y.bin,
+                  scale = y.scale, title = y.title)
+        Y_tooltip = alt.Tooltip(f'{y.var}:{y.type}', bin = y.bin,
+                                format = y.tip_format, title = y.tip_title)
 
         chart = alt.Chart(self.df).mark_rect().encode(
             x = X,
             y = Y,
-            color = Color,
-            tooltip = tooltips
+            color = alt.Color(color_var, scale = alt.Scale(scheme = 'magma')),
+            tooltip = [X_tooltip,
+                       Y_tooltip,
+                       alt.Tooltip(color_var, title = color_var.capitalize())]
         ).transform_filter(
             *filters
         ).properties(
@@ -114,6 +104,107 @@ class DataVisualizer:
             height=height,
         )
         return chart
+
+    def _extremum_heatmap(self, filters, width, height, op, field, color_var,
+                          x: AxisSpec, y: AxisSpec):
+        """A heatmap whose cells name the earthquake holding the extremum.
+
+        max(mag) or min(depth) reduces each cell to a single record, so the cell
+        can say which one it was. The binning and aggregation are spelled out as
+        transforms rather than left to the encodings, because the encoding form
+        -- tooltip {"aggregate": {"argmax": "mag"}, "field": "place"} -- is
+        miscompiled by Vega-Lite 6: it emits datum["place"], dropping the
+        argmax_mag wrapper the aggregate actually writes, and the tooltip reads
+        "undefined" (issue #27). Vega-Lite 5 emits the nested access correctly,
+        so the bug only showed in the marimo front-end, which bundles Vega 6,
+        and not in Dash, which is on Vega 5. Aggregating explicitly and pulling
+        the field out with our own calculate is right on both.
+        """
+        # bin='binned' below puts the axis on a linear scale over epoch
+        # milliseconds, so a time format string would reach d3-format and throw
+        # "invalid format: %Y-%m-%d". Saying which kind of format it is fixes it.
+        x_axis = alt.Axis(format = x.tip_format, formatType = 'time') if x.type == 'T' else x.axis
+        y_axis = alt.Axis(format = y.tip_format, formatType = 'time') if y.type == 'T' else y.axis
+
+        chart = alt.Chart(self.df).transform_filter(*filters)
+
+        # Binning in a transform rather than an encoding means Vega-Lite never
+        # infers a date parse for a time axis, and binning the raw ISO strings
+        # yields NaN -- every row is then dropped by its own invalid-value
+        # filter. Converting first is what keeps the cells on screen.
+        x_source, y_source = x.var, y.var
+        if x.var == 'time':
+            chart = chart.transform_calculate(_x_time = 'toDate(datum.time)')
+            x_source = '_x_time'
+        if y.var == 'time':
+            chart = chart.transform_calculate(_y_time = 'toDate(datum.time)')
+            y_source = '_y_time'
+
+        chart = chart.transform_bin(['x0', 'x0_end'], field = x_source, bin = x.bin)
+        chart = chart.transform_bin(['y0', 'y0_end'], field = y_source, bin = y.bin)
+        chart = chart.transform_aggregate(
+            [alt.AggregatedFieldDef(op = op, field = field, **{'as': 'metric'}),
+             alt.AggregatedFieldDef(op = 'arg' + op, field = field, **{'as': '_winner'})],
+            groupby = ['x0', 'x0_end', 'y0', 'y0_end'],
+        ).transform_calculate(
+            location = 'datum._winner.place'
+        )
+
+        # The bin transform emits epoch milliseconds. Encoding those as temporal
+        # leaves Vega-Lite in two minds about the field -- it parses it as a
+        # number, then generates the mark's aria description with the numeric
+        # format(), which throws "invalid format: %Y-%m-%d" at runtime. Handing
+        # it real dates keeps one consistent view of the field.
+        x_field, y_field = 'x0', 'y0'
+        if x.type == 'T':
+            chart = chart.transform_calculate(x_date = 'toDate(datum.x0)',
+                                              x_date_end = 'toDate(datum.x0_end)')
+            x_field = 'x_date'
+        if y.type == 'T':
+            chart = chart.transform_calculate(y_date = 'toDate(datum.y0)',
+                                              y_date_end = 'toDate(datum.y0_end)')
+            y_field = 'y_date'
+
+        # Vega-Lite renders a binned quantitative tooltip as a range ("0 - 100").
+        # These cells are already binned, so it has nothing to widen and would
+        # show the bin's start alone; build the same label from both edges.
+        labels = {}
+        if x.type == 'T':
+            x_tip = alt.Tooltip(f'{x_field}:T', format = x.tip_format, title = x.tip_title)
+        else:
+            labels['_x_label'] = "format(datum.x0, '') + ' \u2013 ' + format(datum.x0_end, '')"
+            x_tip = alt.Tooltip('_x_label:N', title = x.tip_title)
+        if y.type == 'T':
+            y_tip = alt.Tooltip(f'{y_field}:T', format = y.tip_format, title = y.tip_title)
+        else:
+            labels['_y_label'] = "format(datum.y0, '') + ' \u2013 ' + format(datum.y0_end, '')"
+            y_tip = alt.Tooltip('_y_label:N', title = y.tip_title)
+        if labels:
+            chart = chart.transform_calculate(**labels)
+
+        return chart.mark_rect().encode(
+            x = alt.X(f'{x_field}:{x.type}', bin = 'binned', axis = x_axis, title = x.title),
+            x2 = alt.X2(f'{x_field}_end'),
+            y = alt.Y(f'{y_field}:{y.type}', bin = 'binned', axis = y_axis,
+                      scale = y.scale, title = y.title),
+            y2 = alt.Y2(f'{y_field}_end'),
+            color = alt.Color('metric:Q', scale = alt.Scale(scheme = 'magma'),
+                              title = color_var.capitalize()),
+            # Vega-Lite builds a screen-reader description from every channel,
+            # and for a bin='binned' channel it formats with the numeric
+            # format() even when the axis format is a time format -- which
+            # throws "invalid format: %Y-%m-%d" at runtime. Naming the cell
+            # ourselves replaces that description, and says more anyway.
+            description = alt.Description('location:N'),
+            # Location leads, as it does in the map's point tooltip.
+            tooltip = [alt.Tooltip('location:N', title = 'Location'),
+                       x_tip,
+                       y_tip,
+                       alt.Tooltip('metric:Q', title = color_var.capitalize())],
+        ).properties(
+            width = width,
+            height = height,
+        )
 
     def create_hists_selectors(self, filter_vars, filter_width, filter_height, color_scheme='magma'):
         hists = {}
