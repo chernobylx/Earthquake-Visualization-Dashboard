@@ -99,6 +99,11 @@ behind **Fetch data** and **Render chart** so a slider drag does not re-query US
 re-encode thousands of rows per frame. And the loaded frame sits in `mo.ui.dataframe`,
 whose filters narrow what the chart sees.
 
+Both render dark, to match the Dash app. Panel's comes from the `theme="dark"` its template
+already carries; marimo's lives in the inline script metadata at the top of the notebook
+rather than in `pyproject.toml`, because molab fetches only that one file and would never
+see a project-level setting. `marimo.App()` takes no theme argument and silently ignores one.
+
 The task names deliberately differ from the `marimo` and `panel` executables: a pixi task
 named `panel` shadows the binary, and extra arguments then get appended to the task's own
 command and silently produce a mangled invocation.
