@@ -11,6 +11,10 @@ bounds, then explore what comes back through a linked set of views — a world m
 stack of brushable histograms, and a time–depth heatmap. Every view shares the same
 Vega-Lite selections, so a brush drawn in any one of them filters all the others.
 
+The API client and the chart factory are plain Python classes, so the same two layers
+also drive [marimo](https://marimo.io) and [Panel](https://panel.holoviz.org) front-ends
+under `apps/` — see [Alternate front-ends](#alternate-front-ends).
+
 **[Try the live dashboard](https://0be82526-8d32-4767-bbed-2b63946ff944.plotly.app/dashboard)** — hosted on Plotly Cloud, querying the USGS catalog in real time.
 
 ![Linked views over 2,251 M2.5+ earthquakes from the past 30 days: a world map colored by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
@@ -31,6 +35,9 @@ Vega-Lite selections, so a brush drawn in any one of them filters all the others
 - **Time axes that follow the window** — the heatmap and time histogram switch between
   yearly, monthly, and daily tick formats based on the span of the loaded data, so a
   one-month query doesn't render every tick as the same month.
+- **Heatmap cells that name their own extremum** — set the cell metric to a max or a
+  min and the tooltip names the earthquake that owns it, next to the binned time and
+  depth. A mean gets no such row: no single record owns an average.
 
 ![The data loader and visualizer control panels, with 2,251 records loaded into the sortable data table](docs/figures/app-ui.png)
 
@@ -74,6 +81,27 @@ Open <http://127.0.0.1:8050>. The landing page carries a quick-start guide; clic
 **Clear Table** empties the table and resets the count. Set `DASH_DEBUG=1` to start the app
 with Dash's debug tooling enabled.
 
+### Alternate front-ends
+
+`apps/` holds two more front-ends over the same `DataLoader` and `DataVisualizer`. They
+live in the `alt` pixi environment, so pass `-e alt`:
+
+```bash
+pixi run -e alt marimo-app     # marimo, read-only app with the saved grid layout
+pixi run -e alt marimo-edit    # marimo, editable notebook
+pixi run -e alt panel-app      # Panel
+```
+
+The marimo notebook follows the same order as the Dash app — set a query, **Preview
+count**, **Fetch data**, then **Render chart** — with two differences. A
+`mo.ui.dataframe` sits between the table and the chart, so filters and transforms
+applied there flow through to the map, histograms, and heatmap. And nothing clears on
+its own: the loaded frame and the last rendered chart live in `mo.state`, so moving a
+control leaves both standing until you fetch or render again.
+
+The task names deliberately differ from the executables. A pixi task named `marimo`
+shadows the binary, and extra arguments then get appended to the task's own command.
+
 ## The data
 
 Records come from the USGS FDSN event API on demand and are never committed; anything
@@ -111,6 +139,13 @@ cannot act as a data predicate the way the histogram brushes can.
 Cross-filtering itself is unaffected — brushing a histogram does filter both the map and
 the heatmap.
 
+**A window shorter than 12 days gives the heatmap a bin step of zero.** The time bin is
+sized as `int(n_days / 12)` days, so any query spanning fewer than twelve days floors to
+zero and the x-binning stops meaning anything. Vega-Lite accepts the spec without
+complaint, which is why it fails quietly rather than loudly. The shipped default is a
+30-day window, so you only meet it by narrowing the dates. Tracked as
+[#29](https://github.com/chernobylx/Earthquake-Visualization-Dashboard/issues/29).
+
 ## Architecture
 
 The code is a small installable package under `src/earthquake_dashboard/`, in three
@@ -123,7 +158,9 @@ layers:
 | `app.py` + `pages/` | The multi-page Dash app — layout, widgets, and the callbacks connecting user input to the two classes above |
 
 Keeping the API client and the chart factory out of the Dash layer means both can be
-exercised directly by the test suite, without standing up a server.
+exercised directly by the test suite, without standing up a server. It is also what lets
+`apps/marimo_app.py` and `apps/panel_app.py` present the same dashboard through entirely
+different reactivity models without duplicating a line of query or chart code.
 
 ## Project structure
 
@@ -132,6 +169,8 @@ exercised directly by the test suite, without standing up a server.
 | `src/earthquake_dashboard/` | Installable package: API client, chart factory, Dash app |
 | `src/earthquake_dashboard/pages/` | `index.py` (landing page and quick-start guide, at `/`) and `dashboard.py` (the loader and visualizer, at `/dashboard`) |
 | `src/earthquake_dashboard/assets/` | Stylesheet driving the dashboard's grid layout |
+| `apps/` | `marimo_app.py` and `panel_app.py`, alternate front-ends over the same two classes |
+| `apps/layouts/` | `marimo_app.grid.json`, the saved grid layout marimo reads in app mode — one entry per cell, in source order |
 | `tests/` | pytest suite |
 | `notebooks/` | `eq-dashboard.ipynb`, the self-contained ipywidgets prototype this dashboard grew out of |
 | `docs/figures/` | Images used in this README |
@@ -155,7 +194,9 @@ fixed record counts — the catalog is revised over time, so pinning an exact nu
 a historical window makes the suite fail for reasons that have nothing to do with the
 code.
 
-CI runs the same lint and tests on Python 3.11 and 3.12.
+CI runs the same lint and tests on Python 3.11 and 3.12. It lints `src` and `tests`,
+while `pixi run lint` also covers `apps` — a reason to run the pixi task locally before
+pushing front-end changes.
 
 ### Regenerating the README figures
 
@@ -182,3 +223,27 @@ mismatch and falls back to best-effort handling of anything v6-specific.
 The deployed copy is the same code as `src/earthquake_dashboard/`, flattened
 (`app2.py`, `DataLoader.py`, `DataVisualizer.py`, `pages/`) to suit the platform, with
 its conda environment captured in a `Viz.yaml` export.
+
+### Redeploying
+
+Plotly Cloud now has a CLI, which publishes a whole project directory rather than a
+hand-flattened copy, and skips anything matched by `.gitignore` — so `.pixi/` and `data/`
+stay out of the upload:
+
+```bash
+pip install "dash[cloud]"
+plotly user login
+plotly app publish --app-id <id>
+```
+
+Two details decide whether this can be automated:
+
+- `--name` **always creates a new app**. Updating an existing one needs `--app-id`, or a
+  committed `plotly-cloud.toml` — the CLI writes `name`, `app_id`, `app_url`, and the
+  team fields there on first publish, and reads them back on later ones.
+- `plotly user login` is a browser OAuth flow, so CI needs an API key in `PLOTLY_API_KEY`
+  instead. API keys are a Pro-plan feature; the free plan covers one app and interactive
+  publishing only.
+
+Neither the CLI path nor a CI workflow is wired up here yet — the live app was published
+through the web UI.
