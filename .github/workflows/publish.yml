@@ -1,0 +1,57 @@
+# Publish the dashboard to Plotly Cloud.
+#
+# Manual dispatch only, deliberately. Publishing is outward-facing — it replaces
+# what is serving at the live URL — and it needs a paid plan, so it should not
+# ride along on a push.
+#
+# Prerequisites, none of which exist yet:
+#
+#   PLOTLY_API_KEY  repository secret. Team settings > API Keys > Create API Key;
+#                   the value starts `sk_` and is shown once. API keys are a Pro
+#                   plan feature — the free plan can only publish interactively,
+#                   through `plotly user login`'s browser OAuth flow.
+#   PLOTLY_APP_ID   repository variable, the id of the app to update. `--name`
+#                   is not an alternative: it always creates a NEW app, so a
+#                   workflow using it would leave a fresh app behind on every
+#                   run. Get the id from `plotly app list`.
+#
+# One thing to check before the first run: `--entrypoint-module` is fixed at an
+# app's first publish and cannot be changed afterwards. The live app was
+# published from a flattened copy, so its entrypoint is that layout's module,
+# not `earthquake_dashboard.app`. If they disagree, this must target a new app
+# rather than the existing one — and the free plan allows only one.
+name: Publish
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Matches the interpreter the live app builds on.
+          python-version: "3.13"
+
+      - name: Check the credentials are present
+        env:
+          API_KEY: ${{ secrets.PLOTLY_API_KEY }}
+          APP_ID: ${{ vars.PLOTLY_APP_ID }}
+        run: |
+          test -n "$API_KEY" || { echo "::error::PLOTLY_API_KEY secret is not set"; exit 1; }
+          test -n "$APP_ID"  || { echo "::error::PLOTLY_APP_ID variable is not set"; exit 1; }
+
+      - name: Install the CLI
+        run: pip install "dash[cloud]"
+
+      - name: Publish
+        env:
+          PLOTLY_API_KEY: ${{ secrets.PLOTLY_API_KEY }}
+        # The CLI zips the working directory and skips whatever .gitignore
+        # matches, so .pixi/ and data/ stay out of the upload. Dependencies come
+        # from pyproject.toml. The default 180s status poll is short for a cold
+        # build of geopandas and friends.
+        run: plotly app publish --app-id "${{ vars.PLOTLY_APP_ID }}" --poll-timeout 600
