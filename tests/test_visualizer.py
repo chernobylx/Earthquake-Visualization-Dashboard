@@ -45,6 +45,50 @@ def test_missing_required_columns():
         DataVisualizer(df)
 
 
+def test_string_dtype_columns_accepted():
+    """The molab failure: a widget hands back `string`, not `object` (#42).
+
+    marimo's dataframe widget returns the text columns in pandas' string dtype
+    rather than object, and the old check compared dtypes by string equality, so
+    `'string' != 'object'` rejected a frame holding exactly the right values —
+    "Column 'place' must be of type object" — and the chart never drew.
+    """
+    df = make_valid_df().astype({'place': 'string', 'alert': 'string'})
+    assert str(df['place'].dtype) == 'string'      # not 'object'
+    dv = DataVisualizer(df)                        # must not raise
+    assert list(dv.df.columns) == list(COL_TYPES.keys())
+
+
+def test_mostly_null_object_column_accepted():
+    """USGS leaves `alert` null for most events, and that must stay valid.
+
+    A first cut at the tolerant check used `is_string_dtype` alone, which infers
+    an object column's contents — an all-null `alert` reads False, so a real
+    frame was rejected with the self-contradicting "must be of type object, got
+    object". Synthetic all-string test data never showed it; the live app did.
+    """
+    df = make_valid_df()
+    df['alert'] = [None, None]
+    assert str(df['alert'].dtype) == 'object'
+    DataVisualizer(df)                             # must not raise
+
+
+def test_dtype_check_still_rejects_a_wrong_kind():
+    """Tolerating string dtypes must not tolerate everything."""
+    df = make_valid_df()
+    df['mag'] = df['mag'].astype(str)              # floats as text
+    with pytest.raises(AssertionError, match="Column 'mag' must be of type float64"):
+        DataVisualizer(df)
+
+
+def test_naive_time_rejected():
+    """`time` still has to carry a timezone; the front-ends re-localise for this."""
+    df = make_valid_df()
+    df['time'] = df['time'].dt.tz_localize(None)
+    with pytest.raises(AssertionError, match="Column 'time' must be of type"):
+        DataVisualizer(df)
+
+
 def test_incorrect_column_types():
     df = make_valid_df()
     df['sig'] = ['high', 'low']  # should be int64
