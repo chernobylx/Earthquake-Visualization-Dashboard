@@ -4,11 +4,35 @@ from typing import NamedTuple
 
 import altair as alt
 import pandas as pd
+from pandas.api import types as pdtypes
 from vega_datasets import data
 
 from earthquake_dashboard.data_loader import COL_TYPES
 
 alt.data_transformers.disable_max_rows()
+
+# What each COL_TYPES entry means, rather than how it happens to be spelled.
+# Comparing dtypes by string equality rejects frames holding exactly the right
+# values in a different container: pandas' own `string` dtype, an arrow-backed
+# `string[pyarrow]`, or pandas 3's `str`. marimo's dataframe widget hands one of
+# those back on molab, and `'string' != 'object'` cost the notebook its chart
+# with "Column 'place' must be of type object" (#42). Unknown spellings fall
+# back to equality, so adding a column to COL_TYPES cannot silently pass.
+DTYPE_HOLDS = {
+    # is_string_dtype alone is not enough: on an object column pandas infers the
+    # contents, and USGS leaves `alert` mostly null, so a real frame reads
+    # is_string=False and got rejected with "must be of type object, got
+    # object". Accept object as it always was, and string dtypes as well.
+    'object': lambda s: pdtypes.is_object_dtype(s) or pdtypes.is_string_dtype(s),
+    'float64': pdtypes.is_float_dtype,
+    'int64': pdtypes.is_integer_dtype,
+    'bool': pdtypes.is_bool_dtype,
+    # Any timezone, not only UTC: the loader produces UTC and the front-ends
+    # re-localise to it, but a chart does not care which zone it is given.
+    'datetime64[ns, UTC]': lambda s: pdtypes.is_datetime64_any_dtype(s)
+    and getattr(s.dtype, 'tz', None) is not None,
+}
+
 
 # A heatmap coloured by max(mag) or min(depth) reduces each cell to one record,
 # so the cell can name it. Matches those shorthands and nothing else: mean(depth)
@@ -42,7 +66,11 @@ class DataVisualizer:
 
 
         for col, expected_type in COL_TYPES.items():
-            assert df[col].dtype == expected_type, f"Column '{col}' must be of type {expected_type}"
+            holds = DTYPE_HOLDS.get(expected_type)
+            ok = holds(df[col]) if holds else df[col].dtype == expected_type
+            assert ok, (
+                f"Column '{col}' must be of type {expected_type}, got {df[col].dtype}"
+            )
         #set internal dataframe
         self.df = df
 
