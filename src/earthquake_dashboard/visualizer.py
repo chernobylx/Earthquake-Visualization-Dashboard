@@ -391,9 +391,16 @@ class DataVisualizer:
             *selectors.values()
         )
 
-        filters = [selector for selector in selectors.values()]
-        filters.append(brush)
-        heatmap = self.create_heatmap(filters = filters,
+        # The map brush deliberately does NOT filter the heatmap. Its marks are
+        # placed by longitude/latitude through a projection, so the selection has
+        # no invertible scale to project onto and Vega-Lite compiles it to
+        # vlSelectionIdTest -- an identity match on Vega's internal _vgsid_.
+        # Those ids belong to the map's own data stream, so nothing in the
+        # heatmap's stream ever matches and the whole heatmap emptied the moment
+        # you dragged on the globe: measured at a 93% drop in drawn pixels.
+        # It still colours the map through alt.condition above, which is the
+        # part that works.
+        heatmap = self.create_heatmap(filters = list(selectors.values()),
                                  x_var = heatmap_x,
                                  y_var = heatmap_y,
                                  width = heatmap_width,

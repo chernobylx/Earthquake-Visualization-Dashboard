@@ -130,20 +130,21 @@ A single request is capped at 20,000 records by the API.
 
 ## Known limitations
 
-**A map brush goes stale when a histogram filter widens.** With interval brushes active
-on *both* the map and a histogram, widening the histogram brush brings the newly matching
-earthquakes onto the map greyed out and leaves them out of the heatmap. Repositioning the
-map brush forces a re-evaluation and they appear. This predates the package restructure —
-it is present in the original build and on the deployed app.
+**The map brush highlights, it does not cross-filter.** Dragging on the globe greys out the
+earthquakes outside the selection, and that is all it does — the heatmap keeps showing every
+event.
 
-The likely cause is that the map's brush has no data fields to project onto. A Vega-Lite
-interval selection projects onto its view's `x` and `y` channels, but the earthquake layer
-positions its marks with `longitude`/`latitude` through a projection, so there are no
-invertible scales; the selection compiles with neither `encodings` nor `fields`, and so
-cannot act as a data predicate the way the histogram brushes can.
+The map's marks are placed by `longitude`/`latitude` through a projection, so a Vega-Lite
+interval selection has no invertible scale to project onto: it compiles with neither
+`encodings` nor `fields`. Passed to a `transform_filter` anyway, Vega-Lite falls back to
+`vlSelectionIdTest` — an identity match on Vega's internal `_vgsid_` row ids. Those ids
+belong to the map's own data stream, so nothing in the heatmap's stream ever matched and
+the heatmap emptied the instant you brushed the globe, measured at a 93% drop in drawn
+pixels. The brush is therefore kept out of the heatmap's filters.
 
-Cross-filtering itself is unaffected — brushing a histogram does filter both the map and
-the heatmap.
+The histogram brushes are unaffected and do cross-filter: they project onto real `x`
+channels, so they compile to ordinary field predicates. Brushing a histogram filters both
+the map and the heatmap.
 
 **A query shorter than 12 days gives the heatmap a zero-width time bin.** The bin step is
 sized as `int(n_days / 12)` days, so any window under twelve days floors it to `0`. The
@@ -181,6 +182,7 @@ exercised directly by the test suite, without standing up a server.
 | `docs/make_figures.mjs` / `docs/make_marimo_figure.mjs` | Regenerate those images by driving the running apps with headless Chrome |
 | `docs/cdp.mjs` | The DevTools Protocol client both figure scripts share |
 | `scripts/bundle_plotly.py` | Flattens the package into a Plotly Cloud upload bundle (`pixi run bundle`) |
+| `scripts/embed_layout.py` | Re-embeds the marimo grid layout into the notebook (`pixi run layout`) |
 | `pixi.toml` / `pyproject.toml` | Environment, packaging, and tool configuration |
 
 ## Development

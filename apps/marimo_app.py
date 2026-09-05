@@ -44,7 +44,14 @@ __generated_with = "0.24.0"
 app = marimo.App(
     width="full",
     app_title="Earthquake Dashboard",
-    layout_file="layouts/marimo_app.grid.json",
+    # Embedded rather than referenced: molab mirrors only this file, so a path
+    # here resolves to nothing there — marimo logs "Layout file ... does not
+    # exist", falls back to the vertical view, and the grid view comes up empty
+    # because no cell has a position. marimo decodes a data: URI instead
+    # (_runtime/layout/layout.py:63). apps/layouts/marimo_app.grid.json stays the
+    # editable source; re-run `pixi run layout` after rearranging cells.
+    layout_file="data:application/json;base64,eyJ0eXBlIjoiZ3JpZCIsImRhdGEiOnsiY29sdW1ucyI6MzAsInJvd0hlaWdodCI6MjAsIm1heFdpZHRoIjo1MDAwLCJib3JkZXJlZCI6ZmFsc2UsImNlbGxzIjpbeyJwb3NpdGlvbiI6bnVsbH0seyJwb3NpdGlvbiI6WzAsMCwxNCw4XSwic2lkZSI6ImxlZnQifSx7InBvc2l0aW9uIjpudWxsfSx7InBvc2l0aW9uIjpbMCw4LDgsMThdfSx7InBvc2l0aW9uIjpudWxsfSx7InBvc2l0aW9uIjpbMCwyNiw0LDJdfSx7InBvc2l0aW9uIjpbNCwyNiw0LDJdfSx7InBvc2l0aW9uIjpbOCw4LDIyLDI0XX0seyJwb3NpdGlvbiI6WzAsMzIsMzAsMTJdfSx7InBvc2l0aW9uIjpbMCw0NCwzMCwxMF19LHsicG9zaXRpb24iOm51bGx9LHsicG9zaXRpb24iOm51bGx9LHsicG9zaXRpb24iOlszLDU0LDI1LDQ0XSwic2Nyb2xsYWJsZSI6dHJ1ZX1dfX0=",
+
 )
 
 
