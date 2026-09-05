@@ -47,6 +47,8 @@ format = "ruff format src tests apps scripts"
 test   = "pytest tests/ -v --tb=short"
 # Flatten the package into a Plotly Cloud upload bundle (dist/plotly/ plus a .zip).
 bundle = "python scripts/bundle_plotly.py"
+# Re-embed the marimo grid layout after rearranging cells; molab only ever sees the .py.
+layout = "python scripts/embed_layout.py"
 check  = { depends-on = ["lint", "test"] }
 
 [environments]

@@ -1,3 +1,5 @@
+import json
+
 import altair as alt
 import pandas as pd
 import pytest
@@ -94,6 +96,23 @@ def test_incorrect_column_types():
     df['sig'] = ['high', 'low']  # should be int64
     with pytest.raises(AssertionError, match="Column 'sig' must be of type int64"):
         DataVisualizer(df)
+
+
+def test_map_brush_does_not_filter_the_heatmap():
+    """Brushing the globe used to empty the heatmap (#42 follow-up).
+
+    The map's marks are placed by longitude/latitude through a projection, so
+    the selection has no invertible scale and Vega-Lite compiles it to an
+    identity test on Vega's internal row ids. Those ids belong to the map's data
+    stream, so nothing in the heatmap's stream matched and the heatmap went
+    blank — a 93% drop in drawn pixels, measured in a browser. The map brush
+    must therefore stay out of the heatmap's filters; it still colours the map.
+    """
+    spec = DataVisualizer(make_valid_df()).create_chart(filter_vars=['mag', 'depth'])
+    heatmap = [v for v in spec.to_dict()['hconcat'] if 'transform' in v]
+    predicates = json.dumps([v['transform'] for v in heatmap])
+    assert 'mag_brush' in predicates      # the histogram brushes still cross-filter
+    assert '"brush"' not in predicates    # the map brush does not
 
 
 def test_create_chart_returns_spec():
