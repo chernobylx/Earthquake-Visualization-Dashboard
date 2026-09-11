@@ -23,6 +23,28 @@ COL_TYPES = {'place': 'object',
             'cdi': 'float64',
             'alert': 'object',
 }
+
+# Vega applies no type inference to a CSV source, and Vega-Lite only fills in a
+# parse for fields it encodes itself -- the heatmap converts time with its own
+# toDate() calculate, so that stream got none and every column arrived as text.
+# A brush then compared an ISO string against epoch milliseconds (NaN, so the
+# heatmap emptied) and max(mag) was a lexicographic max. Front-ends that serve
+# the frame by URL declare this alongside the data; inline JSON is already typed.
+VEGA_PARSE_KINDS = {'datetime64[ns, UTC]': 'date',
+                    'float64': 'number',
+                    'int64': 'number',
+                    'bool': 'boolean',
+}
+
+
+def vega_parse() -> dict[str, str]:
+    """The Vega ``format.parse`` map implied by COL_TYPES.
+
+    Text columns are left out: Vega reads CSV fields as strings already.
+    """
+    return {col: VEGA_PARSE_KINDS[dtype]
+            for col, dtype in COL_TYPES.items()
+            if dtype in VEGA_PARSE_KINDS}
 #A custom error class for validating GeoJSONRequestParams
 class InvalidParamError(Exception):
     def __init__(self, message: str):

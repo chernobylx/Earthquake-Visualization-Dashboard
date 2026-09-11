@@ -108,6 +108,25 @@ The task names deliberately differ from the `marimo` and `panel` executables: a 
 named `panel` shadows the binary, and extra arguments then get appended to the task's own
 command and silently produce a mangled invocation.
 
+The marimo tasks pass `--no-sandbox`, and that flag is load-bearing. The notebook's inline
+script metadata installs `earthquake-dashboard` **from git** so molab — which mirrors the
+single `.py` file and nothing around it — can resolve the package. `marimo run` honours that
+metadata by re-executing itself under `uv run --isolated`, which serves whatever `main`
+holds and never imports `src/`. Testing a local fix against that server shows the old
+behaviour: the map-brush fix below reached Dash, on the editable install, and appeared to do
+nothing in marimo until the flag went in. `tests/test_front_end_tasks.py` fails if it is
+dropped.
+
+marimo also serves the chart's data as a CSV URL rather than inlining it, which is a payload
+win but costs the types: Vega infers nothing from a CSV without an explicit `format.parse`,
+and Vega-Lite supplies one only for fields it encodes itself. The heatmap converts time with
+its own `toDate()` calculate, so its stream got no parse at all and every column arrived as
+text — brushing the time histogram then compared an ISO string against the selection's epoch
+milliseconds, coerced to `NaN`, dropped every row and emptied the heatmap, while `max(mag)`
+was a lexicographic maximum over strings. The notebook now wraps marimo's transformer and
+declares `vega_parse()`, the parse map implied by `COL_TYPES`. Dash never saw either bug
+because it inlines the frame as typed JSON.
+
 ## The data
 
 Records come from the USGS FDSN event API on demand and are never committed; anything

@@ -67,6 +67,7 @@ def _():
         DT_FORMAT,
         DataLoader,
         RequestParams,
+        vega_parse,
     )
     from earthquake_dashboard.visualizer import DataVisualizer
 
@@ -87,6 +88,24 @@ def _():
     # which keeps `uv run --script` working, where it is absent.
     if "marimo_csv" in alt.data_transformers.names():
         alt.data_transformers.enable("marimo_csv")
+
+        # A CSV carries no types, and Vega infers none without format.parse.
+        # Vega-Lite supplies one only for fields it encodes itself, so the
+        # heatmap's stream -- which converts time with its own toDate()
+        # calculate -- got none: every column arrived as text, brushing the
+        # time histogram compared an ISO string against epoch milliseconds and
+        # emptied the heatmap, and max(mag) was a lexicographic max over
+        # strings. Declaring the frame's own types fixes both, in every stream.
+        _marimo_csv = alt.data_transformers.get()
+
+        def _marimo_csv_typed(data, **kwargs):
+            spec = _marimo_csv(data, **kwargs)
+            spec.setdefault("format", {})["parse"] = vega_parse()
+            return spec
+
+        # register() takes the value as an argument; it is not a decorator.
+        alt.data_transformers.register("marimo_csv_typed", _marimo_csv_typed)
+        alt.data_transformers.enable("marimo_csv_typed")
 
     # The loaded frame lives in state rather than being a cell's return value.
     # mo.stop aborts the cell it is called in, so a guarded cell that returned
