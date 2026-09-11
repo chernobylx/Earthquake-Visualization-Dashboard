@@ -149,21 +149,27 @@ A single request is capped at 20,000 records by the API.
 
 ## Known limitations
 
-**The map brush highlights, it does not cross-filter.** Dragging on the globe greys out the
-earthquakes outside the selection, and that is all it does — the heatmap keeps showing every
-event.
+**Every view of the chart must read one dataset, or the map brush stops working.** Dragging
+on the globe cross-filters the heatmap and the histograms, the same as brushing a histogram
+does — but it gets there by a different route, and that route is fragile in a way the spec
+will not warn you about.
 
 The map's marks are placed by `longitude`/`latitude` through a projection, so a Vega-Lite
 interval selection has no invertible scale to project onto: it compiles with neither
-`encodings` nor `fields`. Passed to a `transform_filter` anyway, Vega-Lite falls back to
-`vlSelectionIdTest` — an identity match on Vega's internal `_vgsid_` row ids. Those ids
-belong to the map's own data stream, so nothing in the heatmap's stream ever matched and
-the heatmap emptied the instant you brushed the globe, measured at a 93% drop in drawn
-pixels. The brush is therefore kept out of the heatmap's filters.
+`encodings` nor `fields`, whichever way you ask for them. Vega-Lite therefore compiles the
+map brush to `vlSelectionIdTest` — an identity match on Vega's internal `_vgsid_` row ids —
+rather than to a range test on `lon`/`lat`. Vega hands out those ids from a single global
+counter shared across datasets, so two datasets hold *disjoint* id ranges: in a broken build
+the map's quakes ran 179–3528 while the heatmap's stream had no ids at all. The match then
+fails for every row and the heatmap empties the instant you brush the globe.
 
-The histogram brushes are unaffected and do cross-filter: they project onto real `x`
-channels, so they compile to ordinary field predicates. Brushing a histogram filters both
-the map and the heatmap.
+It works as long as every view descends from the same identified dataset. Dash gets that
+free — it inlines the frame, and altair dedupes identical inline data into one entry. marimo
+did not: its transformer mints a fresh virtual file each time it runs, `create_chart` builds
+one `alt.Chart` per view, and the eight views of one figure ended up on eight different URLs
+and eight separate source nodes. The notebook now hands back one URL per distinct frame, so
+they share a source. `test_the_heatmap_and_the_map_read_the_same_dataset` guards the
+Dash-side invariant; the symptom of losing it is a silently empty heatmap, not a bad spec.
 
 **A query shorter than 12 days gives the heatmap a zero-width time bin.** The bin step is
 sized as `int(n_days / 12)` days, so any window under twelve days floors it to `0`. The

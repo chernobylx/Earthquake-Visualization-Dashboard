@@ -391,16 +391,20 @@ class DataVisualizer:
             *selectors.values()
         )
 
-        # The map brush deliberately does NOT filter the heatmap. Its marks are
-        # placed by longitude/latitude through a projection, so the selection has
-        # no invertible scale to project onto and Vega-Lite compiles it to
-        # vlSelectionIdTest -- an identity match on Vega's internal _vgsid_.
-        # Those ids belong to the map's own data stream, so nothing in the
-        # heatmap's stream ever matches and the whole heatmap emptied the moment
-        # you dragged on the globe: measured at a 93% drop in drawn pixels.
-        # It still colours the map through alt.condition above, which is the
-        # part that works.
-        heatmap = self.create_heatmap(filters = list(selectors.values()),
+        # The map brush cross-filters the heatmap, like every histogram brush.
+        # It cannot do so the same way, though: the map's marks are placed by
+        # longitude/latitude through a projection, which has no invertible scale
+        # for a selection to project onto, so Vega-Lite compiles this one to
+        # vlSelectionIdTest -- an identity match on Vega's internal _vgsid_
+        # rather than a range test on lon/lat. Vega assigns those ids in an
+        # identifier transform on one dataset, so the match holds only while the
+        # heatmap's rows and the map's rows come from that same dataset. Every
+        # view here is built from alt.Chart(self.df), which altair serialises to
+        # a single named dataset, so they do -- see
+        # test_the_heatmap_and_the_map_read_the_same_dataset, which fails if a
+        # later change splits them, because the symptom is a silently empty
+        # heatmap rather than a broken spec.
+        heatmap = self.create_heatmap(filters = [*selectors.values(), brush],
                                  x_var = heatmap_x,
                                  y_var = heatmap_y,
                                  width = heatmap_width,

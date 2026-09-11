@@ -72,3 +72,71 @@ def test_a_transformer_can_be_wrapped_through_the_public_registry():
     assert spec['format']['type'] == 'csv'
     assert spec['format']['parse']['time'] == 'date'
     alt.data_transformers.enable('default')
+
+
+def test_a_per_call_url_splits_the_views_and_memoising_does_not():
+    """Why the notebook memoises its transformer.
+
+    create_chart builds one alt.Chart per view. marimo's transformer mints a
+    fresh virtual file every time it runs, so each view got its own URL and
+    therefore its own Vega source node -- and Vega numbers rows from one global
+    counter across nodes, so those nodes hold disjoint _vgsid_ ranges. The map
+    brush compiles to vlSelectionIdTest (a projection has no invertible scale
+    for an interval to project onto), so it matched nothing outside the map and
+    dragging on the globe emptied the heatmap. Returning one URL per distinct
+    frame puts every view back on one identified source.
+    """
+    import itertools
+
+    import altair as alt
+    import pandas as pd
+
+    from earthquake_dashboard.visualizer import DataVisualizer
+
+    df = pd.DataFrame({
+        'place': ['a', 'b'], 'time': pd.to_datetime(['2023-01-01', '2023-06-15'], utc=True),
+        'lat': [1.0, 2.0], 'lon': [3.0, 4.0], 'mag': [4.5, 5.1], 'sig': [311, 400],
+        'depth': [7.0, 2.0], 'tsunami': [False, True], 'cdi': [3.4, 5.6],
+        'alert': ['green', 'yellow'],
+    }).astype({'sig': 'int64'})
+
+    def urls_in(spec, path='', found=None):
+        found = {} if found is None else found
+        if isinstance(spec, dict):
+            data = spec.get('data')
+            # The map's basemap is a topojson URL from vega-datasets; only the
+            # frame's own URL says whether the views share a source.
+            if isinstance(data, dict) and '/@file/' in str(data.get('url', '')):
+                found[path] = data['url']
+            for key in ('hconcat', 'vconcat', 'layer'):
+                for i, child in enumerate(spec.get(key, [])):
+                    urls_in(child, f'{path}/{key}[{i}]', found)
+        return found
+
+    counter = itertools.count(1)
+    alt.data_transformers.register(
+        'probe_per_call', lambda data, **kw: {'url': f'/@file/{next(counter)}.csv',
+                                              'format': {'type': 'csv'}})
+    alt.data_transformers.enable('probe_per_call')
+    split = urls_in(DataVisualizer(df).create_chart().to_dict())
+
+    cache = {}
+
+    def memoised(data, **kwargs):
+        key = len(data), tuple(data.columns)
+        cache.setdefault(key, {'url': '/@file/shared.csv', 'format': {'type': 'csv'}})
+        return cache[key]
+
+    alt.data_transformers.register('probe_memoised', memoised)
+    alt.data_transformers.enable('probe_memoised')
+    shared = urls_in(DataVisualizer(df).create_chart().to_dict())
+    alt.data_transformers.enable('default')
+
+    assert len(set(split.values())) > 1, (
+        'expected a per-call transformer to hand each view its own URL; if it no '
+        'longer does, the memo in apps/marimo_app.py may be unnecessary'
+    )
+    assert len(set(shared.values())) == 1, (
+        f'memoising must put every view on one URL, got {sorted(set(shared.values()))}'
+    )
+    assert len(shared) == len(split)   # same views either way
