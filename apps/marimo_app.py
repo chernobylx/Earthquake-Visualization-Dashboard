@@ -44,22 +44,32 @@ __generated_with = "0.24.0"
 app = marimo.App(
     width="full",
     app_title="Earthquake Dashboard",
-    layout_file="layouts/marimo_app.grid.json",
+    # Embedded rather than referenced: molab mirrors only this file, so a path
+    # here resolves to nothing there — marimo logs "Layout file ... does not
+    # exist", falls back to the vertical view, and the grid view comes up empty
+    # because no cell has a position. marimo decodes a data: URI instead
+    # (_runtime/layout/layout.py:63). apps/layouts/marimo_app.grid.json stays the
+    # editable source; re-run `pixi run layout` after rearranging cells.
+    layout_file="data:application/json;base64,eyJ0eXBlIjoiZ3JpZCIsImRhdGEiOnsiY29sdW1ucyI6MzAsInJvd0hlaWdodCI6MjAsIm1heFdpZHRoIjo1MDAwLCJib3JkZXJlZCI6ZmFsc2UsImNlbGxzIjpbeyJwb3NpdGlvbiI6bnVsbH0seyJwb3NpdGlvbiI6WzAsMCwxNCw4XSwic2lkZSI6ImxlZnQifSx7InBvc2l0aW9uIjpudWxsfSx7InBvc2l0aW9uIjpbMCw4LDgsMThdfSx7InBvc2l0aW9uIjpudWxsfSx7InBvc2l0aW9uIjpbMCwyNiw0LDJdfSx7InBvc2l0aW9uIjpbNCwyNiw0LDJdfSx7InBvc2l0aW9uIjpbOCw4LDIyLDI0XX0seyJwb3NpdGlvbiI6WzAsMzIsMzAsMTJdfSx7InBvc2l0aW9uIjpbMCw0NCwzMCwxMF19LHsicG9zaXRpb24iOm51bGx9LHsicG9zaXRpb24iOm51bGx9LHsicG9zaXRpb24iOlszLDU0LDI1LDQ0XSwic2Nyb2xsYWJsZSI6dHJ1ZX1dfX0=",
+
 )
 
 
 @app.cell
 def _():
+    import hashlib
     from datetime import date, timedelta
 
     import altair as alt
     import marimo as mo
+    import pandas as pd
 
     from earthquake_dashboard.data_loader import (
         COL_TYPES,
         DT_FORMAT,
         DataLoader,
         RequestParams,
+        vega_parse,
     )
     from earthquake_dashboard.visualizer import DataVisualizer
 
@@ -80,6 +90,61 @@ def _():
     # which keeps `uv run --script` working, where it is absent.
     if "marimo_csv" in alt.data_transformers.names():
         alt.data_transformers.enable("marimo_csv")
+
+        # A CSV carries no types, and Vega infers none without format.parse.
+        # Vega-Lite supplies one only for fields it encodes itself, so the
+        # heatmap's stream -- which converts time with its own toDate()
+        # calculate -- got none: every column arrived as text, brushing the
+        # time histogram compared an ISO string against epoch milliseconds and
+        # emptied the heatmap, and max(mag) was a lexicographic max over
+        # strings. Declaring the frame's own types fixes both, in every stream.
+        _marimo_csv = alt.data_transformers.get()
+
+        # marimo mints a fresh virtual file every time the transformer runs, and
+        # create_chart builds one alt.Chart per view, so the eight views of one
+        # figure got eight different URLs -- and therefore eight separate Vega
+        # source nodes. Vega numbers rows with a single global counter across
+        # those nodes, so each one holds a disjoint range of _vgsid_ ids (the
+        # map's quakes ran 179-3528 while the heatmap's stream had none at all).
+        # The map brush is compiled to vlSelectionIdTest -- Vega-Lite cannot
+        # project an interval over a projection onto lon/lat values, in any
+        # spelling -- so it matched nothing outside the map and dragging on the
+        # globe emptied the heatmap. Handing back one URL per distinct frame
+        # puts every view on one identified source, which is what makes the
+        # cross-filter work. Dash never hit this: it inlines the frame, and
+        # altair already dedupes identical inline data into one dataset.
+        _url_cache: dict[str, dict] = {}
+
+        def _frame_key(data) -> str:
+            rows = pd.util.hash_pandas_object(data, index=True).values.tobytes()
+            return hashlib.sha1(rows + repr(list(data.columns)).encode()).hexdigest()
+
+        def _marimo_csv_typed(data, **kwargs):
+            try:
+                key = _frame_key(data)
+            except Exception:  # not a pandas frame; fall back to per-call
+                key = None
+            if key is None or key not in _url_cache:
+                spec = _marimo_csv(data, **kwargs)
+                # A CSV carries no types, and Vega infers none without
+                # format.parse. Vega-Lite supplies one only for fields it
+                # encodes itself, so the heatmap's stream -- which converts time
+                # with its own toDate() calculate -- got none: every column
+                # arrived as text, brushing the time histogram compared an ISO
+                # string against epoch milliseconds and emptied the heatmap, and
+                # max(mag) was a lexicographic max over strings.
+                spec.setdefault("format", {})["parse"] = vega_parse()
+                if key is None:
+                    return spec
+                # Only the newest frame is worth keeping; the rest are stale
+                # filter states nothing will ask for again.
+                _url_cache.clear()
+                _url_cache[key] = spec
+            return _url_cache[key]
+
+        # register() takes the value as an argument; it is not a decorator.
+        alt.data_transformers.register("marimo_csv_typed", _marimo_csv_typed)
+        alt.data_transformers.enable("marimo_csv_typed")
 
     # The loaded frame lives in state rather than being a cell's return value.
     # mo.stop aborts the cell it is called in, so a guarded cell that returned

@@ -391,9 +391,20 @@ class DataVisualizer:
             *selectors.values()
         )
 
-        filters = [selector for selector in selectors.values()]
-        filters.append(brush)
-        heatmap = self.create_heatmap(filters = filters,
+        # The map brush cross-filters the heatmap, like every histogram brush.
+        # It cannot do so the same way, though: the map's marks are placed by
+        # longitude/latitude through a projection, which has no invertible scale
+        # for a selection to project onto, so Vega-Lite compiles this one to
+        # vlSelectionIdTest -- an identity match on Vega's internal _vgsid_
+        # rather than a range test on lon/lat. Vega assigns those ids in an
+        # identifier transform on one dataset, so the match holds only while the
+        # heatmap's rows and the map's rows come from that same dataset. Every
+        # view here is built from alt.Chart(self.df), which altair serialises to
+        # a single named dataset, so they do -- see
+        # test_the_heatmap_and_the_map_read_the_same_dataset, which fails if a
+        # later change splits them, because the symptom is a silently empty
+        # heatmap rather than a broken spec.
+        heatmap = self.create_heatmap(filters = [*selectors.values(), brush],
                                  x_var = heatmap_x,
                                  y_var = heatmap_y,
                                  width = heatmap_width,

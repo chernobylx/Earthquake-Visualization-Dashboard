@@ -108,6 +108,25 @@ The task names deliberately differ from the `marimo` and `panel` executables: a 
 named `panel` shadows the binary, and extra arguments then get appended to the task's own
 command and silently produce a mangled invocation.
 
+The marimo tasks pass `--no-sandbox`, and that flag is load-bearing. The notebook's inline
+script metadata installs `earthquake-dashboard` **from git** so molab — which mirrors the
+single `.py` file and nothing around it — can resolve the package. `marimo run` honours that
+metadata by re-executing itself under `uv run --isolated`, which serves whatever `main`
+holds and never imports `src/`. Testing a local fix against that server shows the old
+behaviour: the map-brush fix below reached Dash, on the editable install, and appeared to do
+nothing in marimo until the flag went in. `tests/test_front_end_tasks.py` fails if it is
+dropped.
+
+marimo also serves the chart's data as a CSV URL rather than inlining it, which is a payload
+win but costs the types: Vega infers nothing from a CSV without an explicit `format.parse`,
+and Vega-Lite supplies one only for fields it encodes itself. The heatmap converts time with
+its own `toDate()` calculate, so its stream got no parse at all and every column arrived as
+text — brushing the time histogram then compared an ISO string against the selection's epoch
+milliseconds, coerced to `NaN`, dropped every row and emptied the heatmap, while `max(mag)`
+was a lexicographic maximum over strings. The notebook now wraps marimo's transformer and
+declares `vega_parse()`, the parse map implied by `COL_TYPES`. Dash never saw either bug
+because it inlines the frame as typed JSON.
+
 ## The data
 
 Records come from the USGS FDSN event API on demand and are never committed; anything
@@ -130,20 +149,27 @@ A single request is capped at 20,000 records by the API.
 
 ## Known limitations
 
-**A map brush goes stale when a histogram filter widens.** With interval brushes active
-on *both* the map and a histogram, widening the histogram brush brings the newly matching
-earthquakes onto the map greyed out and leaves them out of the heatmap. Repositioning the
-map brush forces a re-evaluation and they appear. This predates the package restructure —
-it is present in the original build and on the deployed app.
+**Every view of the chart must read one dataset, or the map brush stops working.** Dragging
+on the globe cross-filters the heatmap and the histograms, the same as brushing a histogram
+does — but it gets there by a different route, and that route is fragile in a way the spec
+will not warn you about.
 
-The likely cause is that the map's brush has no data fields to project onto. A Vega-Lite
-interval selection projects onto its view's `x` and `y` channels, but the earthquake layer
-positions its marks with `longitude`/`latitude` through a projection, so there are no
-invertible scales; the selection compiles with neither `encodings` nor `fields`, and so
-cannot act as a data predicate the way the histogram brushes can.
+The map's marks are placed by `longitude`/`latitude` through a projection, so a Vega-Lite
+interval selection has no invertible scale to project onto: it compiles with neither
+`encodings` nor `fields`, whichever way you ask for them. Vega-Lite therefore compiles the
+map brush to `vlSelectionIdTest` — an identity match on Vega's internal `_vgsid_` row ids —
+rather than to a range test on `lon`/`lat`. Vega hands out those ids from a single global
+counter shared across datasets, so two datasets hold *disjoint* id ranges: in a broken build
+the map's quakes ran 179–3528 while the heatmap's stream had no ids at all. The match then
+fails for every row and the heatmap empties the instant you brush the globe.
 
-Cross-filtering itself is unaffected — brushing a histogram does filter both the map and
-the heatmap.
+It works as long as every view descends from the same identified dataset. Dash gets that
+free — it inlines the frame, and altair dedupes identical inline data into one entry. marimo
+did not: its transformer mints a fresh virtual file each time it runs, `create_chart` builds
+one `alt.Chart` per view, and the eight views of one figure ended up on eight different URLs
+and eight separate source nodes. The notebook now hands back one URL per distinct frame, so
+they share a source. `test_the_heatmap_and_the_map_read_the_same_dataset` guards the
+Dash-side invariant; the symptom of losing it is a silently empty heatmap, not a bad spec.
 
 **A query shorter than 12 days gives the heatmap a zero-width time bin.** The bin step is
 sized as `int(n_days / 12)` days, so any window under twelve days floors it to `0`. The
@@ -181,6 +207,7 @@ exercised directly by the test suite, without standing up a server.
 | `docs/make_figures.mjs` / `docs/make_marimo_figure.mjs` | Regenerate those images by driving the running apps with headless Chrome |
 | `docs/cdp.mjs` | The DevTools Protocol client both figure scripts share |
 | `scripts/bundle_plotly.py` | Flattens the package into a Plotly Cloud upload bundle (`pixi run bundle`) |
+| `scripts/embed_layout.py` | Re-embeds the marimo grid layout into the notebook (`pixi run layout`) |
 | `pixi.toml` / `pyproject.toml` | Environment, packaging, and tool configuration |
 
 ## Development

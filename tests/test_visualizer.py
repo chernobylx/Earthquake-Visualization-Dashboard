@@ -1,3 +1,5 @@
+import json
+
 import altair as alt
 import pandas as pd
 import pytest
@@ -94,6 +96,57 @@ def test_incorrect_column_types():
     df['sig'] = ['high', 'low']  # should be int64
     with pytest.raises(AssertionError, match="Column 'sig' must be of type int64"):
         DataVisualizer(df)
+
+
+def test_map_brush_cross_filters_the_heatmap():
+    """Dragging on the globe must narrow the heatmap, like the histograms do.
+
+    The map's marks are placed by longitude/latitude through a projection, so
+    the selection has no invertible scale to project onto and Vega-Lite compiles
+    it to vlSelectionIdTest -- an identity match on Vega's internal _vgsid_
+    rather than a range test on a field. That works only while the heatmap's
+    rows carry the same ids as the map's, which the next test pins down.
+    """
+    spec = DataVisualizer(make_valid_df()).create_chart(filter_vars=['mag', 'depth'])
+    heatmap = [v for v in spec.to_dict()['hconcat'] if 'transform' in v]
+    predicates = json.dumps([v['transform'] for v in heatmap])
+    assert 'mag_brush' in predicates      # the histogram brushes cross-filter
+    assert '"brush"' in predicates        # and so does the map brush
+
+
+def test_the_heatmap_and_the_map_read_the_same_dataset():
+    """The precondition for the map brush's id match.
+
+    vlSelectionIdTest compares datum._vgsid_ against the ids Vega stored for the
+    marks inside the box, and Vega assigns those ids in an `identifier`
+    transform on one dataset. The match therefore holds only while the heatmap's
+    rows and the map's rows descend from that same dataset. They do today --
+    every view is built from `alt.Chart(self.df)`, which altair serialises to a
+    single named dataset -- but nothing in the spec enforces it, and giving
+    either stream its own copy would empty the heatmap on every map drag while
+    still compiling cleanly.
+    """
+    spec = DataVisualizer(make_valid_df()).create_chart(filter_vars=['mag', 'depth']).to_dict()
+
+    def data_names(node, path=''):
+        found = {}
+        if isinstance(node, dict):
+            data = node.get('data')
+            if isinstance(data, dict) and 'name' in data:
+                found[path] = data['name']
+            for key in ('hconcat', 'vconcat', 'layer'):
+                for i, child in enumerate(node.get(key, [])):
+                    found.update(data_names(child, f'{path}/{key}[{i}]'))
+        return found
+
+    names = data_names(spec)
+    heatmap = [n for path, n in names.items() if path.startswith('/hconcat[1]')]
+    quakes = [n for path, n in names.items() if path.startswith('/hconcat[0]/vconcat[0]')]
+    assert heatmap and quakes, f'expected both views to name a dataset, got {names}'
+    assert set(heatmap) == set(quakes), (
+        f'heatmap reads {heatmap} but the map reads {quakes}; _vgsid_ would not '
+        'line up and the map brush would empty the heatmap'
+    )
 
 
 def test_create_chart_returns_spec():
