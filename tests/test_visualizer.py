@@ -1,11 +1,13 @@
 import json
+import re
+from datetime import timedelta
 
 import altair as alt
 import pandas as pd
 import pytest
 
 from earthquake_dashboard.data_loader import COL_TYPES
-from earthquake_dashboard.visualizer import DataVisualizer
+from earthquake_dashboard.visualizer import DataVisualizer, time_bin
 
 
 def make_valid_df() -> pd.DataFrame:
@@ -229,3 +231,94 @@ def test_heatmap_tooltips_report_the_bin_not_the_row():
     # fields: the time bin's start, and a label spanning the quantitative bin.
     fields = [t.get('field') for t in heatmap_tooltip('max(mag)')]
     assert fields == ['location', 'x_date', '_y_label', 'metric']
+
+
+# --- #29: the time bin step must never floor to zero -------------------------
+
+DAY_MS = 24 * 60 * 60 * 1000
+
+
+def frame_spanning(days: float, rows: int = 40) -> pd.DataFrame:
+    """A valid frame whose `time` column spans exactly `days`."""
+    start = pd.Timestamp('2026-09-01T00:00:00Z')
+    times = [start + timedelta(seconds=days * 86400 * i / max(rows - 1, 1))
+             for i in range(rows)]
+    df = pd.DataFrame({
+        'place': [f'{i} km N of Somewhere' for i in range(rows)],
+        'time': pd.to_datetime(times, utc=True),
+        'lat': [1.0 * i for i in range(rows)],
+        'lon': [-1.0 * i for i in range(rows)],
+        'mag': [1.0 + (i % 7) for i in range(rows)],
+        'sig': [10 * i for i in range(rows)],
+        'depth': [1.0 * (i % 600) for i in range(rows)],
+        'tsunami': [i % 2 == 0 for i in range(rows)],
+        'cdi': [1.0 * (i % 9) for i in range(rows)],
+        'alert': ['green' if i % 2 else None for i in range(rows)],
+    })
+    return df.astype({'sig': 'int64'})
+
+
+def bin_steps(spec: dict) -> list[int]:
+    """Every bin step in a compiled chart spec, however it is spelled."""
+    return [int(s) for s in re.findall(r'"step":\s*(\d+)', json.dumps(spec))]
+
+
+@pytest.mark.parametrize('days', [30, 45, 100, 365])
+def test_long_spans_keep_exactly_the_step_they_had(days):
+    """The fix is a floor, not a re-binning.
+
+    Anything twelve days or wider must come out byte-identical to the original
+    `int(n_days / 12) * day`, so the shipped 30-day default still bins at two
+    days. A difference here is a deliberate change to existing charts, not a
+    bug fix, and belongs in the issue before it belongs in the code.
+    """
+    step, _ = time_bin(timedelta(days=days))
+    assert step == int(days / 12) * DAY_MS
+
+
+def test_the_shipped_default_still_bins_at_two_days():
+    step, _ = time_bin(timedelta(days=30))
+    assert step == 172_800_000
+
+
+@pytest.mark.parametrize('days', [0, 0.5, 3, 7, 11.9])
+def test_short_spans_never_emit_a_zero_step(days):
+    """`"bin": {"step": 0}` compiles cleanly and Vega then ignores it.
+
+    It does not error and it does not draw nothing -- it derives bins from the
+    data extent instead, which puts the edges at arbitrary times of day and
+    makes them move again whenever a brush narrows the data (#29).
+    """
+    spec = DataVisualizer(frame_spanning(days)).create_chart(
+        filter_vars=['time', 'mag']).to_dict()
+    steps = bin_steps(spec)
+    assert steps, 'expected the chart to declare at least one bin step'
+    assert 0 not in steps, f'span of {days} days still emits a zero step: {steps}'
+
+
+def test_the_heatmap_and_the_time_histogram_agree_on_the_step():
+    """Both axes sized the same span the same way, from one helper.
+
+    They used to hold a verbatim copy of the calculation each, which is how the
+    two could disagree about where a day starts.
+    """
+    dv = DataVisualizer(frame_spanning(7))
+    heatmap = dv.create_heatmap(filters=[alt.selection_interval(name='b')],
+                                width=100, height=100)
+    hists, _ = dv.create_hists_selectors(['time'], 100, 40)
+    assert set(bin_steps(heatmap.to_dict())) & set(bin_steps(hists['time'].to_dict()))
+
+
+def test_a_zero_span_frame_bins_at_the_floor():
+    """Every row sharing a timestamp must not divide its way to nothing."""
+    df = frame_spanning(0)
+    assert df['time'].max() == df['time'].min()
+    step, _ = time_bin(timedelta(0))
+    assert step == 60_000
+
+
+@pytest.mark.parametrize(('days', 'wants_hours'), [(0.5, True), (7, True), (30, False), (365, False)])
+def test_the_axis_format_shows_hours_exactly_when_the_step_is_sub_day(days, wants_hours):
+    step, fmt = time_bin(timedelta(days=days))
+    assert ('%H' in fmt) is wants_hours
+    assert (step < DAY_MS) is wants_hours

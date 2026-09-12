@@ -34,6 +34,42 @@ DTYPE_HOLDS = {
 }
 
 
+DAY_MS = 24 * 60 * 60 * 1000
+
+# Bin widths to fall back on when a day is too coarse: 1 minute through 1 day.
+# A day sits at the top so the sub-day range meets the whole-day one instead of
+# moving the cliff somewhere else.
+SUB_DAY_STEPS = (60_000, 300_000, 900_000, 1_800_000,
+                 3_600_000, 10_800_000, 21_600_000, 43_200_000, DAY_MS)
+
+
+def time_bin(span: timedelta) -> tuple[int, str]:
+    """Bin width in milliseconds for a time axis, and an axis format to match.
+
+    Aims for roughly a dozen bins across `span`. The whole-day arithmetic is
+    the original calculation, kept exactly so every span of twelve days or more
+    bins as it always has -- the shipped 30-day default still comes out at two
+    days. It is only the floor that is new: `int(n_days / 12)` reached 0 for any
+    span under twelve days (#29), and Vega does not reject `"bin": {"step": 0}`.
+    It ignores it, deriving bins from the data extent instead, which puts the
+    edges at arbitrary times of day and -- because an extent moves when a
+    selection filters the data -- makes the columns shift under a brush.
+    """
+    step = int(span / timedelta(days=1)) // 12 * DAY_MS
+    if step == 0:
+        target = span.total_seconds() * 1000 / 12
+        step = min(SUB_DAY_STEPS, key=lambda candidate: abs(candidate - target))
+
+    format = '%Y'
+    if span < timedelta(days=1000):
+        format = '%Y-%m'
+    if span < timedelta(days=100):
+        format = '%Y-%m-%d'
+    if step < DAY_MS:
+        format = '%m-%d %H:%M'
+    return step, format
+
+
 # A heatmap coloured by max(mag) or min(depth) reduces each cell to one record,
 # so the cell can name it. Matches those shorthands and nothing else: mean(depth)
 # has no owning record to point at.
@@ -75,16 +111,8 @@ class DataVisualizer:
         self.df = df
 
     def create_heatmap(self, filters, width, height, x_var='time', y_var='depth', color_var='max(mag)'):
-        day = 24*60*60*1000
         time_range = self.df['time'].max() - self.df['time'].min()
-        format = '%Y'
-        if time_range < timedelta(days = 1000):
-            format = '%Y-%m'
-        if time_range < timedelta(days = 100):
-            format = '%Y-%m-%d'
-
-        n_days = int(time_range / timedelta(days=1))
-        step = int(n_days/12) * day
+        step, format = time_bin(time_range)
 
         if x_var == 'time':
             x = AxisSpec(x_var, alt.BinParams(step = step), alt.Axis(format = format),
@@ -94,8 +122,10 @@ class DataVisualizer:
                          'Q', x_var.capitalize(), x_var.capitalize())
 
         if y_var == 'time':
-            y = AxisSpec(y_var, alt.BinParams(step = 365 * day), alt.Axis(format = '%Y'),
-                         'T', 'Date', 'Time', '%Y')
+            # Sized from the span like the x axis, rather than a hardcoded year:
+            # that put every event of a week-long query into one row.
+            y = AxisSpec(y_var, alt.BinParams(step = step), alt.Axis(format = format),
+                         'T', 'Date', 'Time', format)
         else:
             y = AxisSpec(y_var, alt.BinParams(), alt.Axis(),
                          'Q', y_var.capitalize(), y_var.capitalize(),
@@ -241,16 +271,8 @@ class DataVisualizer:
 
             selectors[var] = alt.selection_interval(name = var + '_brush')
             if var == 'time':
-                day = 24*60*60*1000
                 time_range = self.df['time'].max() - self.df['time'].min()
-                format = '%Y'
-                if time_range < timedelta(days = 1000):
-                    format = '%Y-%m'
-                if time_range < timedelta(days = 100):
-                    format = '%Y-%m-%d'
-
-                n_days = int(time_range / timedelta(days=1))
-                step = int(n_days/12) * day
+                step, format = time_bin(time_range)
                 x = alt.X('time:T',
                         axis = alt.Axis(format = format),
                         bin = alt.BinParams(step = step),
