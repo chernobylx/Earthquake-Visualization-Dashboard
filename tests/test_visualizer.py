@@ -7,7 +7,14 @@ import pandas as pd
 import pytest
 
 from earthquake_dashboard.data_loader import COL_TYPES
-from earthquake_dashboard.visualizer import DataVisualizer, time_bin
+from earthquake_dashboard.visualizer import (
+    DARK_INK,
+    LIGHT_INK,
+    MUTED_INK,
+    DataVisualizer,
+    ink_for,
+    time_bin,
+)
 
 
 def make_valid_df() -> pd.DataFrame:
@@ -322,3 +329,41 @@ def test_the_axis_format_shows_hours_exactly_when_the_step_is_sub_day(days, want
     step, fmt = time_bin(timedelta(days=days))
     assert ('%H' in fmt) is wants_hours
     assert (step < DAY_MS) is wants_hours
+
+
+# --- chart text must be readable on the chart's own background ---------------
+
+def test_ink_for_reads_hex_rgb_and_names():
+    """The canvas colour is whatever the user typed into the front-end's box."""
+    for dark in ['#16121d', '#000', 'rgb(26,26,26)', 'rgba(19,16,25,0.9)', 'black', 'darkblue']:
+        assert ink_for(dark) == LIGHT_INK, f'{dark} should take light text'
+    for light in ['#ffffff', '#eee', 'rgb(240,240,240)', 'white', 'lightgrey']:
+        assert ink_for(light) == DARK_INK, f'{light} should take dark text'
+
+
+def test_ink_for_falls_back_to_light_on_an_unparseable_colour():
+    """Every front-end here ships dark, so light is the safer guess.
+
+    Stated as a test because the alternative -- leaving Vega's default -- is
+    black text, which is the bug this whole thing exists to fix.
+    """
+    assert ink_for('rebeccapurple-ish nonsense') == LIGHT_INK
+    assert ink_for(None) == LIGHT_INK
+
+
+def test_the_chart_never_leaves_its_text_at_vegas_black_default():
+    """167 text nodes rendered #000 on a #16121d canvas before this existed."""
+    spec = DataVisualizer(make_valid_df()).create_chart(
+        filter_vars=['mag'], background='#16121d').to_dict()
+    config = spec.get('config', {})
+    assert config['axis']['labelColor'] == MUTED_INK
+    assert config['axis']['titleColor'] == LIGHT_INK
+    assert config['legend']['labelColor'] == MUTED_INK
+    assert config['title']['color'] == LIGHT_INK
+    assert '#000' not in json.dumps(config)
+
+
+def test_a_light_canvas_gets_dark_chart_text():
+    spec = DataVisualizer(make_valid_df()).create_chart(
+        filter_vars=['mag'], background='white').to_dict()
+    assert spec['config']['axis']['titleColor'] == DARK_INK
