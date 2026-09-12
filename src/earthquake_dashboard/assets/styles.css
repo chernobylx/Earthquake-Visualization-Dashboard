@@ -270,7 +270,19 @@ input, button, select, textarea { font: inherit; }
     background: transparent !important;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    /* The cell can be as narrow as 190px and two date fields plus the arrow do
+       not fit at their natural width, so let them shrink and, failing that, wrap
+       onto a second line rather than run past the card's edge. */
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+.dash-datepicker { max-width: 100%; min-width: 0; }
+.dash-datepicker-input {
+    flex: 1 1 9.5ch;
+    min-width: 0;
+    max-width: 100%;
+    text-align: center;
 }
 
 /* The calendar popup, which also ships white. */
@@ -323,6 +335,20 @@ input, button, select, textarea { font: inherit; }
 .dash-range-slider-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .dash-range-slider-input { -moz-appearance: textfield; }
 
+/* Dash 4 builds a dropdown as button.dash-dropdown > span.dash-dropdown-trigger,
+   with the menu in div.dash-dropdown-content. The button and the menu both ship
+   white, so both have to be unpainted before the trigger's own field styling is
+   the thing you see. */
+button.dash-dropdown,
+.dash-dropdown.dropdown {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
 .dash-dropdown-trigger {
     background: var(--field) !important;
     border: 1px solid var(--field-edge) !important;
@@ -333,16 +359,64 @@ input, button, select, textarea { font: inherit; }
     padding: 6px 9px !important;
     min-height: 30px;
 }
-.dash-dropdown-trigger:hover { border-color: #46395d !important; }
+button.dash-dropdown:hover .dash-dropdown-trigger { border-color: #46395d !important; }
 .dash-dropdown-value, .dash-dropdown-value-item { color: var(--ink-2) !important; }
 .dash-dropdown-clear { color: var(--ink-5) !important; }
-.dash-dropdown [role='listbox'],
-.dash-dropdown-menu {
+.dash-dropdown-clear:hover { color: #c4714a !important; }
+
+/* The "3 selected" pill on a multi-dropdown ships near-black on near-white. */
+.dash-dropdown-value-count {
+    background: #2a2239 !important;
+    color: var(--ink-3) !important;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+}
+
+/* A focus proxy Dash keeps in the tree; it paints white if left alone. */
+.dash-dropdown-focus-target {
+    background: transparent !important;
+    color: var(--ink-2) !important;
+    border: 0 !important;
+    caret-color: var(--ink-2);
+}
+
+/* The menu. */
+.dash-dropdown-content {
+    background: var(--panel) !important;
+    border: 1px solid var(--edge) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--ink-2) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    padding: 4px;
+}
+.dash-options-list, .dash-dropdown-options { background: transparent !important; }
+.dash-options-list-option, .dash-dropdown-option {
+    color: var(--ink-2) !important;
+    background: transparent !important;
+    border-radius: 4px;
+    padding: 6px 9px !important;
+    font-size: 12px;
+    cursor: pointer;
+}
+.dash-options-list-option:hover, .dash-dropdown-option:hover {
+    background: #2a2239 !important;
+}
+.dash-options-list-option.selected, .dash-dropdown-option.selected {
+    background: #2f2542 !important;
+    color: var(--lilac) !important;
+}
+/* Dash puts a search box above long option lists. */
+.dash-dropdown-content input {
     background: var(--field) !important;
     border: 1px solid var(--field-edge) !important;
+    border-radius: var(--radius-xs);
     color: var(--ink-2) !important;
-    font-family: var(--mono) !important;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 8px;
 }
+
 .dropdown, .dash-dropdown { max-width: none; font-size: 12px; }
 .text-widget, .dropdown-widget { display: block; }
 
@@ -556,3 +630,63 @@ input, button, select, textarea { font: inherit; }
     .guide { padding: 40px 16px 56px; }
     .guide h1 { font-size: 26px; }
 }
+
+/* ---- remaining Dash chrome ---------------------------------------------
+   These ship with browser-default or light-theme colours, which read as black
+   text on white inside a dark page. */
+
+.dash-table-container .previous-page,
+.dash-table-container .next-page,
+.dash-table-container .first-page,
+.dash-table-container .last-page,
+.dash-table-container .current-page,
+.dash-table-container .current-page-shadow,
+.dash-table-container input.current-page {
+    background: transparent !important;
+    color: var(--ink-3) !important;
+    border: 1px solid #2c2439 !important;
+    border-radius: var(--radius-xs);
+    font-family: var(--mono) !important;
+    font-size: 11px !important;
+}
+.dash-table-container .current-page-shadow { border: 0 !important; color: var(--ink) !important; }
+.dash-table-container .previous-page:hover,
+.dash-table-container .next-page:hover,
+.dash-table-container .first-page:hover,
+.dash-table-container .last-page:hover { border-color: #46395d !important; color: var(--ink) !important; }
+.dash-table-container .page-number { color: var(--ink-4) !important; font-family: var(--mono) !important; }
+
+/* The per-column filter row. */
+.dash-table-container .dash-filter input,
+.dash-table-container .dash-filter--case,
+.dash-spreadsheet-inner .dash-filter input {
+    background: var(--field) !important;
+    color: var(--ink-2) !important;
+    border: 1px solid var(--field-edge) !important;
+    border-radius: var(--radius-xs);
+    font-family: var(--mono) !important;
+}
+.dash-table-container .dash-filter input::placeholder { color: var(--ink-5) !important; }
+
+/* Export / toggle buttons Dash renders above the table. */
+.dash-table-container .export,
+.dash-table-container button {
+    background: #221b2e !important;
+    color: var(--ink-2) !important;
+    border: 1px solid #362c48 !important;
+    border-radius: var(--radius-sm);
+    font-family: var(--mono) !important;
+    font-size: 11px !important;
+}
+
+/* Catch-all: any control that still inherits the browser's black-on-white. */
+.page input:not([type='range']),
+.page select,
+.page textarea {
+    color: var(--ink-2);
+    background: var(--field);
+    border: 1px solid var(--field-edge);
+    border-radius: var(--radius-xs);
+    font-family: var(--mono);
+}
+.page ::placeholder { color: var(--ink-5); }

@@ -269,7 +269,7 @@ def build_visualizer_control_panel():
             html.H5('How To Read'),
             html.Div('Drag across the map or any histogram to filter every panel.',
                      className='widget-help'),
-            html.Div('Nothing redraws until you press Render Chart.',
+            html.Div('Spin, tilt and zoom redraw as you set them; every other control waits for Render Chart.',
                      className='widget-help'),
         ], id='visualizer_widget7', className='widget'),
         html.Div(build_viz_button_widget(), id='viz_button_widget',
@@ -462,7 +462,8 @@ def build_filter_widget(data):
 def build_viz_button_widget():
     widget = []
     widget.append(html.H5('Apply Settings',
-        title='Every control above is read fresh at the moment you click.'))
+        title='Every control above is read fresh at the moment you click. '
+              'Spin, tilt and zoom redraw on their own.'))
     widget.append(html.Button('Render Chart', id='viz_button', className='button'))
     return widget
 
@@ -581,9 +582,14 @@ def count_earthquakes(start_date,
     Output('visualizer_output', 'children'),
     State('data_table', 'derived_virtual_data'),
     State('projection_dropdown', 'value'),
-    State('phi_slider','value'),
-    State('theta_slider', 'value'),
-    State('scale_slider', 'value'),
+    # Spinning or zooming the globe redraws straight away: they reframe the
+    # picture you are already looking at, so waiting for Render Chart makes them
+    # feel broken. Everything else stays a State and waits for the button, which
+    # is what keeps a slider drag from re-encoding thousands of rows per frame.
+    # Dash sliders fire on release, not per pixel, so this is one redraw each.
+    Input('phi_slider', 'value'),
+    Input('theta_slider', 'value'),
+    Input('scale_slider', 'value'),
     State('map_fill', 'value'),
     State('map_stroke', 'value'),
     State('map_background', 'value'),

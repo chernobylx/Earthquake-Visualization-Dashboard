@@ -52,18 +52,24 @@ app.layout = html.Div([
     Output('header_range', 'children'),
     Output('header_count', 'children'),
     Input('count_output', 'children'),
+    Input('data_table', 'data'),
     State('date_range_picker', 'start_date'),
     State('date_range_picker', 'end_date'),
 )
-def mirror_status(count_children, start_date, end_date):
-    """Echo the query's date span and match count into the header.
+def mirror_status(count_children, rows, start_date, end_date):
+    """Echo the query's date span and event count into the header.
 
-    Driven off `count_output` rather than the buttons so the header follows
-    whatever the page already decided to show, including its initial prompt.
+    Rows actually downloaded beat a preview count, so a fetch without a preview
+    still reads as loaded rather than "no query yet". Driven off the two outputs
+    rather than the buttons so the header follows whatever the page already
+    decided to show, including its initial prompt.
     """
     span = '—'
     if start_date and end_date:
         span = f'{str(start_date)[:10]} → {str(end_date)[:10]}'
+
+    if rows:
+        return span, [html.Span(f'{len(rows):,}', className='count-n'), ' loaded']
 
     # count_output is [H5('Matching Events'), <text>]; the text is a bare string
     # before a query has run and a formatted count afterwards.
@@ -75,7 +81,7 @@ def mirror_status(count_children, start_date, end_date):
         text = count_children
 
     digits = ''.join(c for c in text if c.isdigit() or c == ',')
-    events = [html.Span(digits, className='count-n'), ' events'] if digits else 'no query yet'
+    events = [html.Span(digits, className='count-n'), ' matching'] if digits else 'no query yet'
     return span, events
 
 
