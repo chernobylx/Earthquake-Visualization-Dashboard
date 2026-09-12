@@ -11,6 +11,17 @@ from earthquake_dashboard.visualizer import DataVisualizer
 
 dash.register_page(__name__)
 
+# The redesign's palette, for the handful of places Dash insists on inline
+# styles. Keep in step with the tokens at the top of assets/styles.css.
+PANEL = '#1a1622'
+FIELD = '#211b2b'
+FIELD_EDGE = '#322a42'
+RULE = '#241e30'
+RULE_SOFT = '#201a2b'
+INK_2 = '#d8cfe8'
+INK_4 = '#938aa6'
+MONO = "'JetBrains Mono', ui-monospace, monospace"
+
 # The layout is assembled once at import (see the bottom of this file) rather
 # than through a cascade of callbacks. Only the three widgets whose dropdown
 # options come from the loaded frame are still built by a callback.
@@ -23,8 +34,10 @@ def build_page():
 
 def build_loader():
     return [
-        html.Div(build_loader_control_panel(), id='loader_control_panel', className='control-panel'),
-        html.Div(build_loader_output(), id='loader_output', className='dashboard-output'),
+        html.Div(build_loader_control_panel(), id='loader_control_panel', className='control-panel',
+                 **{'data-section': 'Query'}),
+        html.Div(build_loader_output(), id='loader_output', className='dashboard-output',
+                 **{'data-section': 'Loaded records'}),
     ]
 
 def build_loader_output():
@@ -34,32 +47,51 @@ def build_loader_output():
             page_size=50,
             filter_action = 'native',
             sort_action = 'native',
+            # These land as inline styles on the table's own elements, so they
+            # beat assets/styles.css and have to carry the palette themselves.
+            # Zebra striping is gone on purpose: the redesign separates rows with
+            # a single hairline and leans on the hover state instead.
             style_table={
                 'height': '38vh',
-                'width': '44vw',
-                'overflowY': 'auto'
+                'overflowY': 'auto',
             },
             style_data={
                 'whiteSpace': 'normal',
                 'height': 'auto',
+                'backgroundColor': PANEL,
+                'color': INK_2,
+                'border': 'none',
+                'borderBottom': f'1px solid {RULE_SOFT}',
             },
-            style_cell={'textAlign': 'left',
-                        'wordBreak': 'break-all',
+            style_cell={
+                'textAlign': 'left',
+                'wordBreak': 'break-word',
+                'fontFamily': MONO,
+                'fontSize': '12px',
+                'padding': '9px 16px',
             },
             style_as_list_view=True,
-            style_header={'backgroundColor': 'darkblue'},
+            style_header={
+                'backgroundColor': PANEL,
+                'color': INK_4,
+                'fontSize': '10px',
+                'letterSpacing': '0.12em',
+                'textTransform': 'uppercase',
+                'fontWeight': '400',
+                'border': 'none',
+                'borderBottom': f'1px solid {RULE}',
+            },
             style_data_conditional=[
-                {
-                'if': {'row_index': 'odd'},
-                'backgroundColor': 'rgb(0,70,139)',
-                },
-                {
-                'if': {'row_index': 'even'},
-                'backgroundColor': 'rgb(70,0,139)',
-                },
+                {'if': {'state': 'active'},
+                 'backgroundColor': '#1f1929',
+                 'border': f'1px solid {FIELD_EDGE}'},
             ],
-            style_filter={'backgroundColor': 'rgb(0,0,165)',
-                          'color': 'rgb(0,0,165)'}   
+            style_filter={
+                'backgroundColor': FIELD,
+                'color': INK_2,
+                'border': 'none',
+                'borderBottom': f'1px solid {RULE}',
+            },
         )
     )
     return loader_output
@@ -210,7 +242,7 @@ def build_loader_buttons():
 def build_visualizer():
     return [
         html.Div(build_visualizer_control_panel(), id='visualizer_control_panel',
-                 className='control-panel'),
+                 className='control-panel', **{'data-section': 'Linked views'}),
         html.Div(['Visualization'], id='visualizer_output',
                  className='dashboard-output visualization'),
         dcc.Store(id='visualizer_dimensions', data={'width': None, 'height': None}),
@@ -310,20 +342,20 @@ def build_map_colors_widget():
     widgets.append(html.H5('Canvas Color:',
         title='Any CSS color; tints the whole figure, not just the globe.'))
     widgets.append(dcc.Input(
-        value='rgb(26,26,26)',
+        value='#16121d',
         id='map_background',
         className='text_input'
     ))
     widgets.append(html.H5('Land Color:'))
     widgets.append(dcc.Input(
-        value='#444488',
+        value='#3a2f4d',
         id='map_fill',
         className='text_input'
     ))
     widgets.append(html.H5('Border Color:',
         title='Country outlines only; the lat/lon grid keeps its default color.'))
     widgets.append(dcc.Input(
-        value='darkblue',
+        value='#b58ce8',
         id='map_stroke',
         className='text_input'
     )) 
