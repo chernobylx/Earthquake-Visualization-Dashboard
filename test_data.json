@@ -1,0 +1,201 @@
+{
+  "params": [
+    {
+      "name": "PROJECTION",
+      "value": "equalEarth",
+      "bind": {
+        "input": "select",
+        "options": [
+          "albers",
+          "albersUsa",
+          "azimuthalEqualArea",
+          "azimuthalEquidistant",
+          "conicConformal",
+          "conicEqualArea",
+          "conicEquidistant",
+          "equalEarth",
+          "equirectangular",
+          "gnomonic",
+          "mercator",
+          "naturalEarth1",
+          "orthographic",
+          "stereographic",
+          "transverseMercator"
+        ]
+      }
+    },
+    {
+      "name": "rotate0",
+      "value": 0,
+      "bind": {"input": "range", "min": -180, "max": 180, "step": 1}
+    },
+    {
+      "name": "rotate1",
+      "value": 0,
+      "bind": {"input": "range", "min": -180, "max": 180, "step": 1}
+    },
+    {
+      "name": "rotate2",
+      "value": 0,
+      "bind": {"input": "range", "min": -180, "max": 180, "step": 1}
+    }
+  ],
+  "hconcat": [
+    {
+      "layer": [
+        {
+          "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+          "width": 500,
+          "height": 500,
+          "data": {
+            "url": "data/world-110m.json",
+            "format": {"type": "topojson", "feature": "countries"}
+          },
+          "projection": {
+            "type": {"expr": "PROJECTION"},
+            "rotate": {"expr": "[rotate0, rotate1, rotate2]"}
+          },
+          "mark": {"type": "geoshape", "fill": "lightgray", "stroke": "gray"}
+        },
+        {
+          "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+          "description": "Map",
+          "data": {
+            "url": "https://raw.githubusercontent.com/chernobylx/Earthquake-Visualization-Dashboard/refs/heads/main/download%20(4).json"
+          },
+          "params": [{"name": "BRUSH_MAP", "select": {"type": "interval"}}],
+          "mark": "point",
+          "encoding": {
+            "latitude": {"field": "lat", "type": "quantitative"},
+            "longitude": {"field": "lon", "type": "quantitative"},
+            "size": {"field": "mag", "type": "quantitative"},
+            "color": {
+              "condition": {
+                "test": {
+                  "and": [
+                    {"param": "BRUSH_MAP"},
+                    {"param": "BRUSH_MAG"},
+                    {"param": "BRUSH_TIME"}
+                  ]
+                },
+                "field": "sig",
+                "type": "quantitative"
+              },
+              "value": "grey"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "hconcat": [
+        {
+          "layer": [
+            {
+              "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+              "data": {
+                "url": "https://raw.githubusercontent.com/chernobylx/Earthquake-Visualization-Dashboard/refs/heads/main/download%20(4).json",
+                "format": "json"
+              },
+              "params": [
+                {
+                  "name": "BRUSH_TIME",
+                  "select": {"type": "interval", "encodings": "x"}
+                }
+              ],
+              "mark": "bar",
+              "encoding": {
+                "x": {
+                  "field": "time",
+                  "type": "temporal",
+                  "timeUnit": {"unit": "utcyearmonthdate", "step": 2}
+                },
+                "y": {"field": "*", "aggregate": "count"},
+                "color": {"value": "grey"}
+              }
+            },
+            {
+              "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+              "data": {
+                "url": "https://raw.githubusercontent.com/chernobylx/Earthquake-Visualization-Dashboard/refs/heads/main/download%20(4).json",
+                "format": "json"
+              },
+              "transform": [
+                {"filter": {"param": "BRUSH_TIME"}},
+                {"filter": {"param": "BRUSH_MAP"}},
+                {"filter": {"param": "BRUSH_MAG"}}
+              ],
+              "mark": "bar",
+              "encoding": {
+                "x": {
+                  "field": "time",
+                  "type": "temporal",
+                  "timeUnit": {"unit": "utcyearmonthdate", "step": 2}
+                },
+                "y": {"field": "*", "aggregate": "count"},
+                "color": {"field": "sig", "type": "quantitative"}
+              }
+            }
+          ]
+        },
+        {
+          "layer": [
+            {
+              "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+              "data": {
+                "url": "https://raw.githubusercontent.com/chernobylx/Earthquake-Visualization-Dashboard/refs/heads/main/download%20(4).json",
+                "format": "json"
+              },
+              "params": [
+                {
+                  "name": "BRUSH_MAG",
+                  "select": {"type": "interval", "encodings": "x"}
+                }
+              ],
+              "mark": "bar",
+              "encoding": {
+                "x": {
+                  "field": "mag",
+                  "bin": {"maxbins": 6},
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "*",
+                  "aggregate": "count",
+                  "type": "quantitative"
+                },
+                "color": {"value": "grey"}
+              }
+            },
+            {
+              "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+              "data": {
+                "url": "https://raw.githubusercontent.com/chernobylx/Earthquake-Visualization-Dashboard/refs/heads/main/download%20(4).json",
+                "format": "json"
+              },
+              "transform": [
+                {"filter": {"param": "BRUSH_MAG"}},
+                {"filter": {"param": "BRUSH_MAP"}}
+              ],
+              "mark": "bar",
+              "encoding": {
+                "x": {
+                  "field": "mag",
+                  "bin": {"maxbins": 6},
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "*",
+                  "aggregate": "count",
+                  "type": "quantitative"
+                },
+                "color": {"field": "sig", "type": "quantitative"}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "config": {}
+}
