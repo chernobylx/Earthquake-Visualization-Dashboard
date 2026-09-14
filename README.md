@@ -13,7 +13,7 @@ Vega-Lite selections, so a brush drawn in any one of them filters all the others
 
 **[Try the live dashboard](https://0be82526-8d32-4767-bbed-2b63946ff944.plotly.app/dashboard)** — hosted on Plotly Cloud, querying the USGS catalog in real time.
 
-![Linked views over 2,207 M2.5+ earthquakes from the past 30 days: a world map colored by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
+![Linked views over 2,335 M2.5+ earthquakes from the past 30 days on a dark violet canvas: a world map colored by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
 
 ## Features
 
@@ -23,16 +23,21 @@ Vega-Lite selections, so a brush drawn in any one of them filters all the others
 - **Cross-filtered views** — the map, histograms, and heatmap share interval
   selections. Brush a histogram or drag across the map and every other view responds.
 - **Configurable map** — three projections (Natural Earth, azimuthal equal-area,
-  Mercator), rotation and scale sliders, and free-text fill, stroke, and background
-  colors.
+  Mercator), spin, tilt and zoom sliders that redraw the globe as you set them, and
+  free-text fill, stroke, and background colors. The chart picks readable text for
+  whatever canvas color you choose.
 - **Flexible encodings** — choose which variables drive point size, color, and opacity
   on the map, which pair the heatmap aggregates over, and which columns become filter
   histograms.
-- **Time axes that follow the window** — the heatmap and time histogram switch between
-  yearly, monthly, and daily tick formats based on the span of the loaded data, so a
-  one-month query doesn't render every tick as the same month.
+- **Time axes that follow the window** — the heatmap and time histogram size their bins
+  and switch between yearly, monthly, daily, and hourly tick formats based on the span of
+  the loaded data, so a one-month query doesn't render every tick as the same month and a
+  one-week query still gets around a dozen columns.
+- **A dark, card-based interface** — a sticky header shows the query window and how many
+  events are loaded, and the dashboard is laid out as Query, Loaded records, and Linked
+  views cards.
 
-![The data loader and visualizer control panels, with 2,207 records loaded into the sortable data table](docs/figures/app-ui.png)
+![The dashboard: a sticky header showing the query window and 2,335 loaded events, above the Query card's range sliders and buttons, the Loaded records table, and the Linked views chart controls](docs/figures/app-ui.png)
 
 ## Quick start
 
@@ -62,27 +67,34 @@ python -m earthquake_dashboard.app
 
 ### Using the app
 
-Open <http://127.0.0.1:8050>. The landing page carries a quick-start guide; click
-**Launch Dashboard** — or go straight to `/dashboard` — to reach the app itself. There:
+Open <http://127.0.0.1:8050>. The **Quick start** page walks through the workflow in six
+steps; click **Launch dashboard →**, or **Dashboard** in the header, to reach the app. There:
 
-1. Set your query with the date, magnitude, significance, depth, latitude, and
-   longitude controls.
+1. Set your query in the **Query** card: date range, magnitude, significance, depth,
+   latitude, and longitude.
 2. Click **Preview Count** to see how many events match, without downloading them.
-3. Click **Fetch Data** to fetch the records into the table.
-4. Click **Render Chart** to build the linked charts.
+3. Click **Fetch Data** to load the records into the **Loaded records** table. Sorting or
+   filtering the table narrows what the chart draws.
+4. Click **Render Chart** in the **Linked views** card to build the map, histograms, and
+   heatmap.
+
+Spin, tilt, and zoom redraw the globe as soon as you release the slider. Every other chart
+control waits for **Render Chart**, so changing a dropdown doesn't re-encode thousands of
+rows before you've finished choosing. The header mirrors the query's date range and the
+number of events loaded — or matching, after a preview.
 
 **Clear Table** empties the table and resets the count. Set `DASH_DEBUG=1` to start the app
 with Dash's debug tooling enabled.
 
-## Alternate front-ends
+## The marimo front-end
 
-The same `DataLoader` and `DataVisualizer` drive two other apps under `apps/`, so the
-chart is identical in all three and only the widget layer differs:
+The same `DataLoader` and `DataVisualizer` also drive a [marimo](https://marimo.io)
+notebook under `apps/`, so the chart is the same in both and only the widget layer
+differs:
 
 ```bash
-pixi run -e alt marimo-app      # marimo notebook, read-only app mode
+pixi run -e alt marimo-app      # read-only app mode
 pixi run -e alt marimo-edit     # the same notebook, editable
-pixi run -e alt panel-app       # Panel
 ```
 
 [![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/chernobylx/Earthquake-Visualization-Dashboard/blob/main/apps/marimo_app.py)
@@ -99,13 +111,13 @@ behind **Fetch data** and **Render chart** so a slider drag does not re-query US
 re-encode thousands of rows per frame. And the loaded frame sits in `mo.ui.dataframe`,
 whose filters narrow what the chart sees.
 
-Both render dark, to match the Dash app. Panel's comes from the `theme="dark"` its template
-already carries; marimo's lives in the inline script metadata at the top of the notebook
-rather than in `pyproject.toml`, because molab fetches only that one file and would never
-see a project-level setting. `marimo.App()` takes no theme argument and silently ignores one.
+It renders dark, like the Dash app. The theme lives in the inline script metadata at the top
+of the notebook rather than in `pyproject.toml`, because molab fetches only that one file and
+would never see a project-level setting. `marimo.App()` takes no theme argument and silently
+ignores one.
 
-The task names deliberately differ from the `marimo` and `panel` executables: a pixi task
-named `panel` shadows the binary, and extra arguments then get appended to the task's own
+The task names deliberately differ from the `marimo` executable: a pixi task named `marimo`
+would shadow the binary, and extra arguments would then get appended to the task's own
 command and silently produce a mangled invocation.
 
 The marimo tasks pass `--no-sandbox`, and that flag is load-bearing. The notebook's inline
@@ -171,13 +183,6 @@ and eight separate source nodes. The notebook now hands back one URL per distinc
 they share a source. `test_the_heatmap_and_the_map_read_the_same_dataset` guards the
 Dash-side invariant; the symptom of losing it is a silently empty heatmap, not a bad spec.
 
-**A query shorter than 12 days gives the heatmap a zero-width time bin.** The bin step is
-sized as `int(n_days / 12)` days, so any window under twelve days floors it to `0`. The
-spec still compiles — Vega-Lite does not error on `"bin": {"step": 0}` — so it fails
-quietly rather than loudly, and the time histogram is sized the same way. The shipped
-30-day default gives a 2-day step, so you only reach it by narrowing the date range
-([#29](https://github.com/chernobylx/Earthquake-Visualization-Dashboard/issues/29)).
-
 ## Architecture
 
 The code is a small installable package under `src/earthquake_dashboard/`, in three
@@ -197,11 +202,11 @@ exercised directly by the test suite, without standing up a server.
 | Path | Purpose |
 |---|---|
 | `src/earthquake_dashboard/` | Installable package: API client, chart factory, Dash app |
-| `src/earthquake_dashboard/pages/` | `index.py` (landing page and quick-start guide, at `/`) and `dashboard.py` (the loader and visualizer, at `/dashboard`) |
-| `src/earthquake_dashboard/assets/` | Stylesheet driving the dashboard's grid layout |
+| `src/earthquake_dashboard/pages/` | `index.py` (the Quick start guide, at `/`) and `dashboard.py` (the Query, Loaded records, and Linked views cards, at `/dashboard`) |
+| `src/earthquake_dashboard/assets/` | `styles.css`, the interface's palette and component styling, and `backdrop.js`, the animated background |
 | `tests/` | pytest suite |
 | `notebooks/` | `eq-dashboard.ipynb`, the self-contained ipywidgets prototype this dashboard grew out of |
-| `apps/` | `marimo_app.py` and `panel_app.py`, alternate front-ends over the same two classes |
+| `apps/` | `marimo_app.py`, the marimo front-end over the same two classes |
 | `apps/layouts/` | `marimo_app.grid.json`, the grid layout marimo reads in app mode — one entry per cell, in source order |
 | `docs/figures/` | Images used in this README |
 | `docs/make_figures.mjs` / `docs/make_marimo_figure.mjs` | Regenerate those images by driving the running apps with headless Chrome |

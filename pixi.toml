@@ -21,14 +21,13 @@ vega_datasets = "*"
 dash-vega-components = "*"
 earthquake_dashboard = { path = ".", editable = true }
 
-# Alternate front-ends over the same DataLoader / DataVisualizer.
+# The marimo front-end, over the same DataLoader / DataVisualizer as the Dash app.
 [feature.alt.dependencies]
 marimo = "*"
-panel = "*"
 
-# Task names deliberately differ from the marimo/panel executables: a task named
-# "panel" shadows the binary, so extra arguments get appended to the task's own
-# command and silently produce a mangled invocation.
+# Task names deliberately differ from the marimo executable: a task named
+# "marimo" would shadow the binary, so extra arguments get appended to the task's
+# own command and silently produce a mangled invocation.
 [feature.alt.tasks]
 # --no-sandbox is load-bearing. The notebook's PEP 723 block installs
 # earthquake-dashboard from git so molab can resolve it, and `marimo run` obeys
@@ -37,7 +36,6 @@ panel = "*"
 # for exactly that reason while Dash, on the editable install, had it.
 marimo-app = "marimo run apps/marimo_app.py --no-sandbox"
 marimo-edit = "marimo edit apps/marimo_app.py --no-sandbox"
-panel-app = "panel serve apps/panel_app.py --show"
 
 [feature.dev.dependencies]
 ruff = "*"

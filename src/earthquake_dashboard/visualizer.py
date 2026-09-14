@@ -38,7 +38,7 @@ DTYPE_HOLDS = {
 # spec says otherwise, which on this app's dark canvas came out as 167 unreadable
 # text nodes. The chart already knows what it is being drawn on -- create_chart
 # takes the canvas colour -- so it picks its own ink from that rather than
-# assuming a theme, which keeps it right in all three front-ends and for whatever
+# assuming a theme, which keeps it right in both front-ends and for whatever
 # colour someone types into the Canvas Color box.
 LIGHT_INK = '#ece8f4'
 MUTED_INK = '#a49ab6'   # axis and legend labels, which outnumber everything else
