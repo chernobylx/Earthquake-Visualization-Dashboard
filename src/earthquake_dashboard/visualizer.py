@@ -34,6 +34,82 @@ DTYPE_HOLDS = {
 }
 
 
+# Vega-Lite draws every axis label, legend entry and title in #000 unless the
+# spec says otherwise, which on this app's dark canvas came out as 167 unreadable
+# text nodes. The chart already knows what it is being drawn on -- create_chart
+# takes the canvas colour -- so it picks its own ink from that rather than
+# assuming a theme, which keeps it right in both front-ends and for whatever
+# colour someone types into the Canvas Color box.
+LIGHT_INK = '#ece8f4'
+MUTED_INK = '#a49ab6'   # axis and legend labels, which outnumber everything else
+DARK_INK = '#1a1206'
+MUTED_DARK_INK = '#4a4550'
+
+# Enough of the CSS names to cover this app's own defaults and the obvious
+# choices. Anything else falls back to light, since every front-end ships dark --
+# a wrong guess there is visible and fixable, where leaving Vega's default is the
+# black-on-black this exists to prevent. Parsed without matplotlib or Pillow on
+# purpose: both are present here only transitively, and the Plotly Cloud bundle
+# installs just the seven declared dependencies.
+CSS_COLORS = {
+    'black': (0, 0, 0), 'white': (255, 255, 255),
+    'grey': (128, 128, 128), 'gray': (128, 128, 128),
+    'darkgrey': (169, 169, 169), 'darkgray': (169, 169, 169),
+    'lightgrey': (211, 211, 211), 'lightgray': (211, 211, 211),
+    'dimgrey': (105, 105, 105), 'dimgray': (105, 105, 105),
+    'silver': (192, 192, 192), 'gainsboro': (220, 220, 220),
+    'whitesmoke': (245, 245, 245), 'ivory': (255, 255, 240),
+    'darkblue': (0, 0, 139), 'navy': (0, 0, 128), 'midnightblue': (25, 25, 112),
+    'darkslategrey': (47, 79, 79), 'darkslategray': (47, 79, 79),
+    'darkgreen': (0, 100, 0), 'maroon': (128, 0, 0), 'indigo': (75, 0, 130),
+    'steelblue': (70, 130, 180), 'lightblue': (173, 216, 230),
+    'beige': (245, 245, 220), 'wheat': (245, 222, 179),
+}
+
+
+def _rgb(color) -> tuple[int, int, int] | None:
+    """(r, g, b) for a hex, rgb()/rgba() or known-named CSS colour, else None."""
+    if not isinstance(color, str):
+        return None
+    value = color.strip().lower()
+
+    if value in CSS_COLORS:
+        return CSS_COLORS[value]
+
+    if value.startswith('#'):
+        digits = value[1:]
+        if len(digits) in (3, 4):          # #abc and #abcd
+            digits = ''.join(d * 2 for d in digits[:3])
+        if len(digits) in (6, 8):          # #aabbcc and #aabbccdd
+            try:
+                return tuple(int(digits[i:i + 2], 16) for i in (0, 2, 4))
+            except ValueError:
+                return None
+        return None
+
+    if value.startswith(('rgb(', 'rgba(')):
+        parts = value[value.index('(') + 1:].rstrip(')').replace('/', ',').split(',')
+        try:
+            channels = [float(p.strip().rstrip('%')) for p in parts[:3]]
+        except ValueError:
+            return None
+        if len(channels) < 3:
+            return None
+        return tuple(max(0, min(255, round(c))) for c in channels)
+
+    return None
+
+
+def ink_for(background) -> str:
+    """The text colour to draw on `background`."""
+    rgb = _rgb(background)
+    if rgb is None:
+        return LIGHT_INK
+    r, g, b = rgb
+    # Rec. 709 relative luminance, on the same 0-255 scale as the channels.
+    return DARK_INK if (0.2126 * r + 0.7152 * g + 0.0722 * b) > 140 else LIGHT_INK
+
+
 DAY_MS = 24 * 60 * 60 * 1000
 
 # Bin widths to fall back on when a day is too coarse: 1 minute through 1 day.
@@ -441,6 +517,29 @@ class DataVisualizer:
         earth |= heatmap
         earth = earth.resolve_scale(color='independent')
         earth = earth.properties(background = background)
-        return earth
+
+        # Labels outnumber titles many times over, so they take the muted tone
+        # and the titles carry the contrast. Gridlines and domains are pulled
+        # most of the way back into the canvas: at Vega's default they drew a
+        # white cage around every histogram.
+        ink = ink_for(background)
+        muted = MUTED_INK if ink == LIGHT_INK else MUTED_DARK_INK
+        structure = '#2e2640' if ink == LIGHT_INK else '#d8d4dd'
+        return earth.configure_axis(
+            labelColor = muted,
+            titleColor = ink,
+            gridColor = structure,
+            domainColor = structure,
+            tickColor = structure,
+        ).configure_legend(
+            labelColor = muted,
+            titleColor = ink,
+        ).configure_title(
+            color = ink,
+        ).configure_view(
+            stroke = None,
+        ).configure_text(
+            color = ink,
+        )
 
 

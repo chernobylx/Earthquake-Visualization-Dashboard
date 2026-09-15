@@ -1,250 +1,692 @@
-/* The page sits directly on the body, which otherwise shows the browser's
-   default white background and 8px margin as a border around everything. */
+/* Earthquake Explorer — implements "Earthquake Dashboard (redesign).dc.html".
+   Every colour here comes from that file; the tokens below are the only place
+   they are spelled, so a palette change is one edit rather than forty. */
+
+:root {
+    --bg:          #131019;   /* page */
+    --panel:       #1a1622;   /* cards */
+    --panel-deep:  #16121d;   /* the chart's own well */
+    --field:       #211b2b;   /* inputs, chips */
+    --edge:        #262032;   /* card border */
+    --rule:        #241e30;   /* dividers inside a card */
+    --rule-soft:   #201a2b;   /* table rows */
+    --field-edge:  #322a42;
+    --ink:         #ece8f4;   /* primary text */
+    --ink-2:       #d8cfe8;   /* secondary */
+    --ink-3:       #a49ab6;   /* tertiary */
+    --ink-4:       #938aa6;   /* labels, captions */
+    --ink-5:       #6d6480;   /* faintest marks */
+    --accent:      #d9a35f;   /* amber: primary action, counts, warnings */
+    --accent-hi:   #e5b274;
+    --lilac:       #c3a2ef;   /* section headings, links */
+    --lilac-2:     #b58ce8;   /* query sliders */
+    --green:       #7fb07a;   /* live dot */
+
+    --radius:      10px;
+    --radius-sm:   6px;
+    --radius-xs:   5px;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 html, body {
     margin: 0;
     padding: 0;
-    background-color: rgb(0,0,32);
+    background: var(--bg);
 }
 
-#layout{
-    background-color: rgb(0,0,63);
-    height: auto;
+body {
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--lilac); text-decoration: none; }
+a:hover { color: var(--ink); }
+::selection { background: #3a2b52; color: #fff; }
+input, button, select, textarea { font: inherit; }
+
+/* The particle field in assets/backdrop.js. Fixed and inert so it never
+   intercepts a brush drag meant for the chart. */
+.backdrop {
+    position: fixed;
+    inset: 0;
     width: 100%;
-    color: rgb(148, 148, 239);
-    font-family: monospace;
-    display: grid;
-    grid-template-columns: 1vw auto auto 1vw;
-    grid-template-rows: 1vh auto  auto 1vh;
-    grid-template-areas:    '.  header  header  .'
-                            '.  loader  loader     .'
-                            '.  viz       viz       .'
-                            '.  .       .       .';
-
-    row-gap: 10px;
-    column-gap: 10px;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
 }
 
-#header{
-    background-color: rgb(0,0,32);
-    width: 100%;
-    color: darkblue;
-}
-.dashboard {
-    background-color: l*rgb(0,0,88);
-    height: auto;
-    display: grid;
-    grid-template-columns: 1vw 1fr 1vw;
-    grid-template-rows:  1vh auto auto 1vh;
-    row-gap: 1vh;
-    column-gap: 1vw;
-    grid-template-areas:    '.    .         .'
-                            '.    ctrl      .'
-                            '.    output    .'
-                            '.    .         .';
-}
-.dashboard:hover{
-    background-color: rgb(0,44,88);
+#layout { position: relative; min-height: 100vh; }
+.page { position: relative; z-index: 1; }
+
+/* ---- header ------------------------------------------------------------- */
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(19, 16, 25, 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #2a2338;
 }
 
-#loader {
-    grid-area: loader;
-    grid-template-columns:  1vw     1fr    1fr    1vw;
-    grid-template-rows:     1vh 1fr 1vh;
-    grid-template-areas:    '...... ...... ...... ......'
-                            '...... ctrl   output ......'
-                            '...... ...... ...... ......';
-}
-
-#visualizer {
-    grid-area: viz;
-} 
-
-.control-panel{
-    grid-area: ctrl;
-    background-color: rgb(0,0,114);
-    height: auto;
-    display: grid;
-    grid-template-columns: 1vh repeat(4, 1fr) 1vh;
-    grid-template-rows: 1vh repeat(2, 1fr) 1vh;
-    grid-template-areas:    '.  .   .   .   .   .'
-                            '.  w1  w2  w3  w4  .'
-                            '.  w5  w6  w7  w8  .'
-                            '.  .   .   .   .   .';
-    column-gap: 5px;
-    row-gap: 5px;
-}
-.control-panel:hover{
-    background-color: rgb(0, 57, 114);
-}
-
-.control-panel >:nth-child(1){
-    grid-area: w1;
-}
-.control-panel >:nth-child(2){
-    grid-area: w2;
-}
-.control-panel >:nth-child(3){
-    grid-area: w3;
-}
-.control-panel >:nth-child(4){
-    grid-area: w4;
-}
-.control-panel >:nth-child(5){
-    grid-area: w5;
-}
-.control-panel >:nth-child(6){
-    grid-area: w6;
-}
-.control-panel >:nth-child(7){
-    grid-area: w7;
-}
-.control-panel >:nth-child(8){
-    grid-area: w8;
-}
-
-
-.widget{
-    background-color: darkblue;
-}
-.widget:hover{
-    background-color: rgb(0,70,139);
-}
-
-.button-widget{
-    display: grid;
-    grid-template-rows: 1fr 1fr 1fr;
-}
-.button{
-    color: rgb(108, 108, 224);
-    background-color: darkblue;
-}
-.button:hover{
-    background-color: rgb(0,70,139);
-}
-
-/* Labels sit above their slider: a 20px side column is why these were once
-   abbreviated to 'mag:' and 'sig:', and nothing here clips overflow. */
-.slider-widget{
-    display: grid;
-    grid-template-columns: 1fr;
-    /* the last slider's always-visible tooltip hangs below its track; reserve
-       room so it cannot land on the widget in the grid row underneath */
-    padding-bottom: 1.2rem;
-}
-
-.widget-help{
-    font-size: 10px;
-    line-height: 1.3;
-}
-
-.dropdown-widget{
-    display: grid;
-    grid-template-columns: 1fr 3fr;
-}
-/* Controls sized to their content sit centred in the row rather than
-   stretching to its full height, which left their text hugging the top. */
-.dropdown-widget,
-.text-widget {
-    align-items: center;
-}
-
-/* Dash 4 renders a dropdown as a button + listbox. The .Select-* rules further
-   down target react-select from Dash 1/2 and no longer match anything, which is
-   why the value text was not vertically centred. */
-.dash-dropdown {
-    min-height: 22px;
-}
-.dash-dropdown .dash-dropdown-value,
-.dash-dropdown .dash-dropdown-value-item {
+.header-inner {
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 0 22px;
     display: flex;
     align-items: center;
+    gap: 26px;
+    height: 54px;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(217, 163, 95, 0.14);
+    flex-shrink: 0;
+}
+.brand-name { font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
+
+.nav { display: flex; gap: 2px; }
+.nav-link {
+    border: 0;
+    border-radius: var(--radius-sm);
+    padding: 7px 13px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--ink-3);
+    background: transparent;
+    cursor: pointer;
+}
+.nav-link:hover { background: #221b2e; color: var(--ink-2); }
+/* Dash marks the current page's Link with .active. */
+.nav-link.active { background: #2a2239; color: var(--ink); }
+
+.status {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--ink-3);
+}
+.status-live { display: flex; align-items: center; gap: 7px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.status-range { color: var(--ink-4); }
+.status-count { color: var(--ink-4); }
+.count-n { color: var(--ink); font-weight: 500; }
+
+/* ---- page scaffold ------------------------------------------------------ */
+
+#loader, #visualizer {
+    max-width: 1680px;
+    margin: 0 auto 14px;
+    padding: 0;
+}
+#loader { padding-top: 20px; }
+#visualizer { padding-bottom: 56px; }
+
+/* Each half of the page is a card. The redesign puts the records table above
+   the linked views, which is the order the page already builds them in. */
+.dashboard {
+    border: 1px solid var(--edge);
+    border-radius: var(--radius);
+    background: var(--panel);
+    overflow: hidden;
+    margin: 0 22px 14px;
+}
+
+/* Section rules give each card its "QUERY" / "LINKED VIEWS" / "LOADED RECORDS"
+   banner without the page having to grow a header element per card. Any block
+   carrying data-section gets one. */
+[data-section] { position: relative; }
+[data-section]::before {
+    content: attr(data-section);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--lilac);
+    grid-column: 1 / -1;
+}
+
+/* ---- control panels ----------------------------------------------------- */
+
+.control-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    background: var(--panel);
+}
+
+.widget {
+    padding: 13px 16px;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    background: transparent;
+    min-width: 0;
+}
+.widget:hover { background: #1d1826; }
+
+/* Every widget's first line is its label. */
+.widget h5,
+.widget h4,
+.widget label {
+    margin: 0 0 9px;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+}
+
+.widget-help {
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--ink-4);
+    text-wrap: pretty;
+}
+/* "Nothing redraws until you press Render Chart" is the one caution here. */
+.widget-help + .widget-help { color: #a3855f; margin-top: 6px; }
+
+/* ---- buttons ------------------------------------------------------------ */
+
+.button-widget {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.button {
+    background: #221b2e;
+    color: var(--ink-2);
+    border: 1px solid #362c48;
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.button:hover { background: #2b2239; border-color: #46395d; }
+
+/* The one primary action per card: Fetch Data, and Render Chart. */
+#load_button, #viz_button {
+    background: var(--accent);
+    color: #1a1206;
+    border-color: var(--accent);
+    font-weight: 600;
+}
+#load_button:hover, #viz_button:hover {
+    background: var(--accent-hi);
+    border-color: var(--accent-hi);
+}
+
+/* Destructive, so it stays quiet until you reach for it. */
+#clear_button {
+    background: transparent;
+    color: var(--ink-4);
+    border-color: #2c2439;
+}
+#clear_button:hover { color: #c4714a; border-color: #4a3040; background: transparent; }
+
+/* ---- the matching-count chip -------------------------------------------- */
+
+#count_output { display: flex; flex-direction: column; justify-content: center; }
+#count_output h5 { margin-bottom: 6px; }
+#count_output { color: var(--ink-4); font-size: 11px; }
+
+/* ---- inputs: dates, dropdowns, text -------------------------------------
+   Dash 4 renders its own controls: dash-datepicker-input, dash-dropdown-trigger,
+   dash-slider-*. The older rc-slider / react-select class names these rules used
+   to carry match nothing in this version, which is why the sliders and the date
+   box came through in browser default white. */
+
+.dash-datepicker-input,
+.text_input,
+.dash-range-slider-input,
+.dash-input-container {
+    background: var(--field);
+    border: 1px solid var(--field-edge);
+    border-radius: var(--radius-xs);
+    color: var(--ink-2);
+    padding: 5px 8px;
+    font-family: var(--mono);
+    font-size: 12px;
     line-height: 1.2;
 }
-
-/* Main dropdown container */
-.dropdown {
-    max-width: 50%;
-    font-size: 10px;
-    min-height: 20px;
+/* The picker's own wrapper ships white, and its inner wrapper a navy border. */
+.dash-datepicker { background: transparent !important; }
+.dash-datepicker-input-wrapper {
+    border: 0 !important;
+    background: transparent !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    /* The cell can be as narrow as 190px and two date fields plus the arrow do
+       not fit at their natural width, so let them shrink and, failing that, wrap
+       onto a second line rather than run past the card's edge. */
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+.dash-datepicker { max-width: 100%; min-width: 0; }
+.dash-datepicker-input {
+    flex: 1 1 9.5ch;
+    min-width: 0;
+    max-width: 100%;
+    text-align: center;
 }
 
-/* Target the control div inside the dropdown - this is the key element */
-.dropdown .Select-control {
-    height: 20px !important;
-    min-height: 20px !important;
-    max-height: 20px !important;
+/* The calendar popup, which also ships white. */
+.dash-datepicker-content {
+    background: var(--panel) !important;
+    border: 1px solid var(--edge) !important;
+    border-radius: var(--radius-sm);
+    color: var(--ink-2) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+.dash-datepicker-content button,
+.dash-datepicker-content td,
+.dash-datepicker-content th {
+    color: var(--ink-2);
+    background: transparent;
+    border: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    border-radius: 4px;
+}
+.dash-datepicker-content th { color: var(--ink-4); font-size: 10px; letter-spacing: 0.1em; }
+.dash-datepicker-content button:hover { background: #2a2239; }
+.dash-datepicker-content [aria-selected='true'],
+.dash-datepicker-content .selected,
+.dash-datepicker-content .in-range {
+    background: var(--accent) !important;
+    color: #1a1206 !important;
+}
+.dash-datepicker-content [disabled] { color: var(--ink-5); }
+
+.dash-datepicker-input:focus,
+.text_input:focus,
+.dash-range-slider-input:focus { outline: none; border-color: #46395d; }
+.text_input { width: 100%; }
+
+/* The slider's editable endpoints. They sit under the track, so they read as
+   captions rather than as a second set of controls. */
+.dash-range-slider-input {
+    width: auto;
+    max-width: 9ch;
+    padding: 3px 6px;
+    font-size: 11px;
+    color: var(--ink-3);
+    background: transparent;
+    border-color: transparent;
+}
+.dash-range-slider-input:hover { border-color: var(--field-edge); background: var(--field); }
+/* Chrome draws number spinners that crowd a 9ch box. */
+.dash-range-slider-input::-webkit-outer-spin-button,
+.dash-range-slider-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.dash-range-slider-input { -moz-appearance: textfield; }
+
+/* Dash 4 builds a dropdown as button.dash-dropdown > span.dash-dropdown-trigger,
+   with the menu in div.dash-dropdown-content. The button and the menu both ship
+   white, so both have to be unpainted before the trigger's own field styling is
+   the thing you see. */
+button.dash-dropdown,
+.dash-dropdown.dropdown {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
 }
 
-/* Target the value container and input */
-.dropdown .Select-value,
-.dropdown .Select-input {
-    line-height: 18px !important;
-    height: 18px !important;
+.dash-dropdown-trigger {
+    background: var(--field) !important;
+    border: 1px solid var(--field-edge) !important;
+    border-radius: var(--radius-xs) !important;
+    color: var(--ink-2) !important;
+    font-family: var(--mono) !important;
+    font-size: 12px !important;
+    padding: 6px 9px !important;
+    min-height: 30px;
+}
+button.dash-dropdown:hover .dash-dropdown-trigger { border-color: #46395d !important; }
+.dash-dropdown-value, .dash-dropdown-value-item { color: var(--ink-2) !important; }
+.dash-dropdown-clear { color: var(--ink-5) !important; }
+.dash-dropdown-clear:hover { color: #c4714a !important; }
+
+/* The "3 selected" pill on a multi-dropdown ships near-black on near-white. */
+.dash-dropdown-value-count {
+    background: #2a2239 !important;
+    color: var(--ink-3) !important;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
 }
 
-/* Ensure placeholder and single value text aligns properly */
-.dropdown .Select-placeholder,
-.dropdown .Select-value-label {
-    line-height: 18px !important;
+/* A focus proxy Dash keeps in the tree; it paints white if left alone. */
+.dash-dropdown-focus-target {
+    background: transparent !important;
+    color: var(--ink-2) !important;
+    border: 0 !important;
+    caret-color: var(--ink-2);
 }
 
-/* Also target the arrow/indicator container */
-.dropdown .Select-arrow-zone {
-    height: 20px !important;
+/* The menu. */
+.dash-dropdown-content {
+    background: var(--panel) !important;
+    border: 1px solid var(--edge) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--ink-2) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    padding: 4px;
+}
+.dash-options-list, .dash-dropdown-options { background: transparent !important; }
+.dash-options-list-option, .dash-dropdown-option {
+    color: var(--ink-2) !important;
+    background: transparent !important;
+    border-radius: 4px;
+    padding: 6px 9px !important;
+    font-size: 12px;
+    cursor: pointer;
+}
+.dash-options-list-option:hover, .dash-dropdown-option:hover {
+    background: #2a2239 !important;
+}
+.dash-options-list-option.selected, .dash-dropdown-option.selected {
+    background: #2f2542 !important;
+    color: var(--lilac) !important;
+}
+/* Dash puts a search box above long option lists. */
+.dash-dropdown-content input {
+    background: var(--field) !important;
+    border: 1px solid var(--field-edge) !important;
+    border-radius: var(--radius-xs);
+    color: var(--ink-2) !important;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 8px;
 }
 
-#projection_widget{
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr;
+.dropdown, .dash-dropdown { max-width: none; font-size: 12px; }
+.text-widget, .dropdown-widget { display: block; }
+
+/* ---- sliders ------------------------------------------------------------ */
+
+.slider-widget { padding-bottom: 1.4rem; }
+.dash-slider-wrapper { padding: 6px 0 2px; }
+
+.dash-slider-track {
+    background: #2e2640 !important;
+    height: 2px !important;
+    border-radius: 2px;
+}
+.dash-slider-range {
+    background: var(--lilac-2) !important;
+    height: 2px !important;
+    border-radius: 2px;
+}
+.dash-slider-thumb {
+    width: 10px !important;
+    height: 10px !important;
+    background: var(--bg) !important;
+    border: 2px solid var(--lilac-2) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+.dash-slider-thumb:hover,
+.dash-slider-thumb:focus { border-color: var(--ink) !important; outline: none; }
+
+.dash-slider-tooltip {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: var(--ink-2) !important;
+    font-family: var(--mono) !important;
+    font-size: 11px !important;
+    padding: 0 !important;
 }
 
-.text-widget{
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-}
-.text_input{
-    height:25%;
-    width: 75%
-}
-.dashboard-output{
-    grid-area: output;
-    background-color: darkblue;
-    display: grid;
-    min-height: 20vh;
-    grid-template-columns: 1vh 1fr 1vh;
-    grid-template-rows: 1vh 1fr 1vh;
-}
-.dashboard-output:hover{
-    background-color: rgb(0,70,139);
-}
+/* Map tools read as adjustments to the picture, so they take the amber. */
+#map_tools_widget .dash-slider-range { background: var(--accent) !important; }
+#map_tools_widget .dash-slider-thumb { border-color: var(--accent) !important; }
 
-#visualizer_output{
+/* ---- the chart well ----------------------------------------------------- */
+
+.dashboard-output {
+    background: var(--panel-deep);
+    display: block;
+    padding: 14px;
+    min-height: 0;
+}
+.dashboard-output:hover { background: var(--panel-deep); }
+
+#visualizer_output {
     min-height: 95vh;
     /* Pinned, not content-sized: the clientside callback in app.py measures this
        box and feeds the result back into create_chart(height=...). If the box grew
-       to fit the chart, each Visualize click would measure the previous chart and
-       render a taller one. */
+       to fit the chart, each Render Chart click would measure the previous chart
+       and render a taller one. */
     max-height: 95vh;
-    overflow-y: auto;
+    overflow: auto;
+    display: block;
+    border-radius: var(--radius-sm);
+}
+#map { display: block; }
+
+/* ---- records table ------------------------------------------------------ */
+
+#loader_output { padding: 0; background: var(--panel); }
+
+#data_table { width: 100%; }
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th,
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
+    font-family: var(--mono) !important;
+    background: var(--panel) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: 1px solid var(--rule-soft) !important;
+}
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th {
+    font-size: 10px !important;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-4) !important;
+    font-weight: 400 !important;
+    border-bottom: 1px solid var(--rule) !important;
+}
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
+    font-size: 12px !important;
+    color: var(--ink-2) !important;
+}
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner tr:hover td {
+    background: #1f1929 !important;
+}
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner input:not([type=radio]):not([type=checkbox]) {
+    color: var(--ink-2) !important;
+    background: var(--field) !important;
+}
+.dash-table-container .previous-next-container,
+.dash-table-container .page-number,
+.dash-table-container .current-page,
+.dash-table-container .last-page {
+    color: var(--ink-4) !important;
+    font-family: var(--mono) !important;
+    font-size: 11px !important;
+}
+.dash-table-container .previous-page, .dash-table-container .next-page,
+.dash-table-container .first-page, .dash-table-container .last-page {
+    border: 1px solid #2c2439 !important;
+    border-radius: var(--radius-xs);
+    color: var(--ink-4) !important;
+}
+
+/* ---- quick start -------------------------------------------------------- */
+
+.guide { max-width: 820px; margin: 0 auto; padding: 64px 22px 80px; }
+.guide-eyebrow {
+    margin: 0 0 14px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+.guide h1 {
+    margin: 0 0 16px;
+    font-size: 34px;
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: pretty;
+}
+.guide-lede {
+    margin: 0 0 40px;
+    font-size: 14px;
+    color: var(--ink-3);
+    max-width: 60ch;
+    text-wrap: pretty;
+}
+
+/* One-pixel gaps over a tinted parent draw the grid's rules. */
+.steps {
     display: grid;
-    grid-template-columns: 1vw auto 1vw;
-    /* .dashboard-output supplies three rows; the single-area template this rule
-       used to declare put the chart in the 1vh track and let it spill out. */
-    grid-template-rows: 1vh auto 1vh;
-    grid-template-areas: '.... ..... ....'
-                         '.... chart ....'
-                         '.... ..... ....';
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1px;
+    background: var(--edge);
+    border: 1px solid var(--edge);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 40px;
 }
-#map{
-    grid-area: chart;
+.step { background: var(--panel); padding: 18px 18px 20px; }
+.step-n { font-size: 11px; color: var(--accent); margin-bottom: 10px; }
+.step-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.step-body { font-size: 12px; color: var(--ink-4); text-wrap: pretty; }
+
+.guide-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 28px;
+    margin-bottom: 44px;
+}
+.guide-groups h3 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--lilac);
+}
+.guide-row {
+    display: flex;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    font-size: 12px;
+}
+.guide-k { color: var(--ink-2); min-width: 92px; flex-shrink: 0; }
+.guide-v { color: var(--ink-4); text-wrap: pretty; }
+
+.guide-foot {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding-top: 28px;
+    border-top: 1px solid var(--edge);
+}
+.cta {
+    background: var(--accent);
+    color: #1a1206;
+    border: 0;
+    border-radius: 7px;
+    padding: 13px 26px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+}
+.cta:hover { background: var(--accent-hi); }
+.guide-source { font-size: 11px; color: var(--ink-4); }
+
+/* ---- narrow screens ----------------------------------------------------- */
+
+@media (max-width: 720px) {
+    .header-inner { gap: 14px; height: auto; padding: 10px 16px; flex-wrap: wrap; }
+    .status { width: 100%; margin-left: 0; gap: 12px; flex-wrap: wrap; }
+    .dashboard { margin: 0 12px 12px; }
+    .guide { padding: 40px 16px 56px; }
+    .guide h1 { font-size: 26px; }
 }
 
-#data_table{
-    grid-column: 2;
-    grid-row: 2;
+/* ---- remaining Dash chrome ---------------------------------------------
+   These ship with browser-default or light-theme colours, which read as black
+   text on white inside a dark page. */
+
+.dash-table-container .previous-page,
+.dash-table-container .next-page,
+.dash-table-container .first-page,
+.dash-table-container .last-page,
+.dash-table-container .current-page,
+.dash-table-container .current-page-shadow,
+.dash-table-container input.current-page {
+    background: transparent !important;
+    color: var(--ink-3) !important;
+    border: 1px solid #2c2439 !important;
+    border-radius: var(--radius-xs);
+    font-family: var(--mono) !important;
+    font-size: 11px !important;
+}
+.dash-table-container .current-page-shadow { border: 0 !important; color: var(--ink) !important; }
+.dash-table-container .previous-page:hover,
+.dash-table-container .next-page:hover,
+.dash-table-container .first-page:hover,
+.dash-table-container .last-page:hover { border-color: #46395d !important; color: var(--ink) !important; }
+.dash-table-container .page-number { color: var(--ink-4) !important; font-family: var(--mono) !important; }
+
+/* The per-column filter row. */
+.dash-table-container .dash-filter input,
+.dash-table-container .dash-filter--case,
+.dash-spreadsheet-inner .dash-filter input {
+    background: var(--field) !important;
+    color: var(--ink-2) !important;
+    border: 1px solid var(--field-edge) !important;
+    border-radius: var(--radius-xs);
+    font-family: var(--mono) !important;
+}
+.dash-table-container .dash-filter input::placeholder { color: var(--ink-5) !important; }
+
+/* Export / toggle buttons Dash renders above the table. */
+.dash-table-container .export,
+.dash-table-container button {
+    background: #221b2e !important;
+    color: var(--ink-2) !important;
+    border: 1px solid #362c48 !important;
+    border-radius: var(--radius-sm);
+    font-family: var(--mono) !important;
+    font-size: 11px !important;
 }
 
-.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner input:not([type=radio]):not([type=checkbox]){
-    color:rgb(76, 76, 238)!important;
+/* Catch-all: any control that still inherits the browser's black-on-white. */
+.page input:not([type='range']),
+.page select,
+.page textarea {
+    color: var(--ink-2);
+    background: var(--field);
+    border: 1px solid var(--field-edge);
+    border-radius: var(--radius-xs);
+    font-family: var(--mono);
 }
-
+.page ::placeholder { color: var(--ink-5); }
