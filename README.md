@@ -28,7 +28,11 @@ Vega-Lite selections, so a brush drawn in any one of them filters all the others
   whatever canvas color you choose.
 - **Flexible encodings** — choose which variables drive point size, color, and opacity
   on the map, which pair the heatmap aggregates over, and which columns become filter
-  histograms.
+  histograms. Opacity has a floor, so the faintest earthquake is still a visible point
+  rather than a gap in the map.
+- **Every point identifies its event** — hover an earthquake for its place, its instant
+  to the second in UTC, magnitude, depth, and coordinates to four decimals; click it to
+  open its record on earthquake.usgs.gov in a new tab.
 - **Time axes that follow the window** — the heatmap and time histogram size their bins
   and switch between yearly, monthly, daily, and hourly tick formats based on the span of
   the loaded data, so a one-month query doesn't render every tick as the same month and a
@@ -71,7 +75,9 @@ Open <http://127.0.0.1:8050>. The **Quick start** page walks through the workflo
 steps; click **Launch dashboard →**, or **Dashboard** in the header, to reach the app. There:
 
 1. Set your query in the **Query** card: date range, magnitude, significance, depth,
-   latitude, and longitude.
+   latitude, and longitude. It opens on the last thirty days, read in UTC each time the
+   page loads. Both dates count as 00:00 UTC, so the end bound sits on tomorrow — an end
+   date of today would stop before today's events.
 2. Click **Preview Count** to see how many events match, without downloading them.
 3. Click **Fetch Data** to load the records into the **Loaded records** table. Sorting or
    filtering the table narrows what the chart draws.
@@ -156,6 +162,7 @@ loader enforces their types before the visualizer will accept a frame:
 | `tsunami` | bool | Whether a tsunami was generated |
 | `cdi` | float | Community Decimal Intensity (reported shaking) |
 | `alert` | string | PAGER alert level: green, yellow, orange, or red |
+| `url` | string | The event's page on earthquake.usgs.gov, which the map links each point to |
 
 A single request is capped at 20,000 records by the API.
 

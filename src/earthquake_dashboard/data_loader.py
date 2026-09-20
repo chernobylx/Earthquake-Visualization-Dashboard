@@ -1,6 +1,6 @@
 import json
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import date, datetime, time, timedelta, timezone
 from io import StringIO
 from typing import Optional
 
@@ -10,6 +10,39 @@ import requests
 
 #Datetime format for the project
 DT_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+# How far back the default query window reaches, and the one place this package
+# reads the current day.
+#
+# Both bounds used to be literals -- datetime(2025, 11, 20) and a week later --
+# and a dataclass default is evaluated once, at class definition. So the window
+# never moved: by the time anyone read it, it named a week already in the past.
+# Both front-ends send dates of their own, so this only ever reached a library
+# caller, and it reached them silently.
+#
+# The end bound is tomorrow rather than today because USGS reads a bare date as
+# 00:00 UTC and therefore excludes the end date itself. A window ending today
+# stops before today's events.
+DEFAULT_WINDOW_DAYS = 30
+
+
+def utc_today() -> date:
+    """Today's date in UTC.
+
+    Not ``date.today()``, which is the host's local day: on a host behind UTC
+    the two disagree for part of every day, and every date this app shows or
+    sends is UTC.
+    """
+    return datetime.now(timezone.utc).date()
+
+
+def default_window() -> tuple[str, str]:
+    """``(starttime, endtime)`` for the last month, ending tomorrow at 00:00 UTC."""
+    today = utc_today()
+    start = datetime.combine(today - timedelta(days=DEFAULT_WINDOW_DAYS), time.min)
+    end = datetime.combine(today + timedelta(days=1), time.min)
+    return start.strftime(DT_FORMAT), end.strftime(DT_FORMAT)
+
 
 #columns and their types expected by the datavisuzlizer
 COL_TYPES = {'place': 'object',
@@ -22,6 +55,10 @@ COL_TYPES = {'place': 'object',
             'tsunami': 'bool',
             'cdi': 'float64',
             'alert': 'object',
+            # The event's page on earthquake.usgs.gov. USGS ships it with every
+            # feature, so it costs nothing to carry, and it is what lets the map
+            # link a point to its source record.
+            'url': 'object',
 }
 
 # Vega applies no type inference to a CSV source, and Vega-Lite only fills in a
@@ -35,6 +72,13 @@ VEGA_PARSE_KINDS = {'datetime64[ns, UTC]': 'date',
                     'int64': 'number',
                     'bool': 'boolean',
 }
+
+
+# Columns that ride along for a chart to use rather than for anyone to read. A
+# full USGS event URL is around sixty characters and both front-ends' tables wrap
+# their cells, so showing it makes every row several lines tall and squeezes the
+# columns somebody is actually looking at. The map links each point instead.
+HIDDEN_COLUMNS = ('url',)
 
 
 def vega_parse() -> dict[str, str]:
@@ -57,9 +101,12 @@ class RequestParams:
     #a dataclass for storing geojson api request params for the usgs api at https://earthquake.usgs.gov/fdsnws/event/1/
     format: str = 'geojson' #format must be geojson
 
-    #starttime must be before endtime if both are specified
-    starttime: Optional[str] = datetime.strftime(datetime(year=2025, month=11, day=20), DT_FORMAT)
-    endtime: Optional[str]= datetime.strftime(datetime(year=2025, month=11, day=27), DT_FORMAT)
+    #starttime must be before endtime if both are specified.
+    #Read per instance through a factory, not written as a literal: a plain
+    #dataclass default is computed once when this class is defined, which is how
+    #the old hardcoded November 2025 window got stuck there. See default_window.
+    starttime: Optional[str] = field(default_factory=lambda: default_window()[0])
+    endtime: Optional[str] = field(default_factory=lambda: default_window()[1])
 
     #minmagnitude must be less than maxmagnitude if both are specified
     minmagnitude: Optional[float] = 6.0

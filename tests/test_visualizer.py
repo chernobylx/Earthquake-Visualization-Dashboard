@@ -11,6 +11,7 @@ from earthquake_dashboard.visualizer import (
     DARK_INK,
     LIGHT_INK,
     MUTED_INK,
+    OPACITY_FLOOR,
     DataVisualizer,
     ink_for,
     time_bin,
@@ -30,6 +31,8 @@ def make_valid_df() -> pd.DataFrame:
         'tsunami': [False, True],
         'cdi': [3.4, 5.6],
         'alert': ['green', 'yellow'],
+        'url': ['https://earthquake.usgs.gov/earthquakes/eventpage/ok2023a',
+                'https://earthquake.usgs.gov/earthquakes/eventpage/ci2023b'],
     })
     return df.astype({'sig': 'int64'})
 
@@ -261,6 +264,8 @@ def frame_spanning(days: float, rows: int = 40) -> pd.DataFrame:
         'tsunami': [i % 2 == 0 for i in range(rows)],
         'cdi': [1.0 * (i % 9) for i in range(rows)],
         'alert': ['green' if i % 2 else None for i in range(rows)],
+        'url': [f'https://earthquake.usgs.gov/earthquakes/eventpage/e{i}'
+                for i in range(rows)],
     })
     return df.astype({'sig': 'int64'})
 
@@ -367,3 +372,124 @@ def test_a_light_canvas_gets_dark_chart_text():
     spec = DataVisualizer(make_valid_df()).create_chart(
         filter_vars=['mag'], background='white').to_dict()
     assert spec['config']['axis']['titleColor'] == DARK_INK
+
+
+def layers(node):
+    """Every view in a composed spec, including the layers inside a map."""
+    if isinstance(node, dict):
+        yield node
+        for key in ('hconcat', 'vconcat', 'layer'):
+            for child in node.get(key, []):
+                yield from layers(child)
+
+
+def point_spec(**kwargs) -> dict:
+    """The compiled spec for the map's earthquake points.
+
+    Found by its mark rather than by its position in the concatenation, so
+    rearranging the views does not silently start testing the basemap.
+    """
+    spec = DataVisualizer(make_valid_df()).create_chart(
+        filter_vars=['mag'], **kwargs).to_dict()
+    points = [v for v in layers(spec)
+              if (v.get('mark') if isinstance(v.get('mark'), str)
+                  else (v.get('mark') or {}).get('type')) == 'circle']
+    assert len(points) == 1, f'expected one circle layer, found {len(points)}'
+    return points[0]
+
+
+def point_tooltip() -> dict:
+    """The point tooltip, keyed by the label each row shows."""
+    return {row['title']: row for row in point_spec()['encoding']['tooltip']}
+
+
+def test_the_point_tooltip_gives_the_time_to_the_second_in_utc():
+    """A bare temporal tooltip reads "Jan 1, 2023" in the browser's own zone.
+
+    Every date in this app is UTC -- the pickers say so -- and an event's
+    identity is its moment, not its day, so the tooltip formats the instant
+    itself with utcFormat rather than letting Vega render it locally.
+    """
+    assert utc_time_calculation()['calculate'].count('%H:%M:%S') == 1
+    assert point_tooltip()['Time (UTC)']['type'] == 'nominal', \
+        'a temporal field would render in the browser\'s zone, and to the day'
+
+
+def utc_time_calculation() -> dict:
+    """The transform that builds the field the Time (UTC) tooltip row reads.
+
+    Found by following the tooltip's own field rather than by scanning for
+    `utcFormat` anywhere on the layer. Checking the two halves separately let a
+    rename on one side alone pass: altair does not verify that an explicitly
+    typed field exists, so the tooltip would point at a field no transform
+    produces and the row would render empty while the suite stayed green.
+    """
+    spec = point_spec()
+    field = point_tooltip()['Time (UTC)']['field']
+    written = [t for t in spec['transform'] if t.get('as') == field and 'calculate' in t]
+    assert len(written) == 1, (
+        f'the Time (UTC) tooltip reads {field!r}, which no transform on this '
+        f"layer creates: {[t.get('as') for t in spec['transform']]}"
+    )
+    assert 'utcFormat' in written[0]['calculate'], (
+        f"{field} is not built with utcFormat: {written[0]['calculate']}"
+    )
+    return written[0]
+
+
+def test_the_utc_time_calculation_survives_a_csv_source():
+    """marimo serves the frame as a CSV, where `time` arrives as a string.
+
+    utcFormat over a string returns nothing useful, so the calculation converts
+    first. Dash inlines typed JSON and would not have shown this.
+    """
+    assert 'toDate(' in utc_time_calculation()['calculate']
+
+
+def test_the_point_tooltip_gives_coordinates_to_four_decimals():
+    tooltip = point_tooltip()
+    assert tooltip['Latitude']['field'] == 'lat'
+    assert tooltip['Longitude']['field'] == 'lon'
+    # Four decimals is about eleven metres, and what USGS itself reports.
+    assert tooltip['Latitude']['format'] == '.4f'
+    assert tooltip['Longitude']['format'] == '.4f'
+
+
+def test_the_point_tooltip_carries_the_usgs_url():
+    assert point_tooltip()['USGS']['field'] == 'url'
+
+
+def test_clicking_a_point_opens_its_usgs_event_page():
+    """A Vega tooltip is plain text, so the URL in it cannot be clicked.
+
+    The href channel is what makes the mark itself a link, which is the only
+    way a Vega-Lite spec can offer one.
+    """
+    assert point_spec()['encoding']['href']['field'] == 'url'
+
+
+def test_the_faintest_earthquake_is_still_visible():
+    """0.1 is a floor in name only: on this canvas the point disappears."""
+    low, high = point_spec()['encoding']['opacity']['scale']['range']
+    assert low == OPACITY_FLOOR
+    assert low >= 0.35
+    assert high == 1
+
+
+def test_the_opacity_floor_can_be_raised_by_a_caller():
+    low, high = point_spec(opacity_range=(0.6, 0.9))['encoding']['opacity']['scale']['range']
+    assert (low, high) == (0.6, 0.9)
+
+
+def test_a_point_link_opens_beside_the_dashboard():
+    """Navigating this tab to USGS would throw the session away.
+
+    The loaded records, every histogram brush and the rendered chart all live in
+    the page, so a link that replaces it costs the user their whole query. Vega
+    resolves an href through its loader, and the loader's target defaults to the
+    current tab, so the spec has to say otherwise. It says so in usermeta, which
+    vega-embed reads -- that reaches Dash and marimo alike, where a front-end's
+    own embed options would only ever fix one of them.
+    """
+    spec = DataVisualizer(make_valid_df()).create_chart(filter_vars=['mag']).to_dict()
+    assert spec['usermeta']['embedOptions']['loader']['target'] == '_blank'

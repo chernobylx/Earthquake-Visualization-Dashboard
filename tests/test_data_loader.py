@@ -103,3 +103,36 @@ class TestCountDoesNotSendLimit:
         #every other query parameter still has to reach the API
         assert sent['params']['minmagnitude'] == TEST_PARAMS.minmagnitude
         assert sent['params']['format'] == 'geojson'
+
+
+def test_preprocess_keeps_the_event_url():
+    """The map links each point to its USGS event page through this field.
+
+    preprocess() selects exactly COL_TYPES, so an undeclared column is dropped
+    before any chart sees it -- the href would read nothing and the tooltip
+    would show a blank. Driven through preprocess itself rather than asserting
+    the COL_TYPES entry, which would restate the declaration instead of
+    exercising what depends on it. Offline: the loader is handed a frame rather
+    than fetching one.
+    """
+    import geopandas as gpd
+    from shapely.geometry import Point
+
+    url = 'https://earthquake.usgs.gov/earthquakes/eventpage/us7000abcd'
+    loader = DataLoader(RP(starttime=start, endtime=end))
+    loader.gdf = gpd.GeoDataFrame(
+        {
+            'place': ['3 km SE of Perry, Oklahoma'],
+            # USGS ships the instant as epoch milliseconds.
+            'time': [1_789_654_792_210],
+            'mag': [4.5], 'sig': [311], 'tsunami': [0], 'cdi': [3.4],
+            'alert': ['green'], 'url': [url],
+        },
+        # preprocess reads lon, lat and depth off the geometry's x, y and z.
+        geometry=[Point(-97.2576, 36.2709, 7.28)],
+    )
+
+    df = loader.preprocess()
+
+    assert list(df.columns) == list(COL_TYPES)
+    assert df['url'].iloc[0] == url
