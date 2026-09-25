@@ -690,3 +690,16 @@ button.dash-dropdown:hover .dash-dropdown-trigger { border-color: #46395d !impor
     font-family: var(--mono);
 }
 .page ::placeholder { color: var(--ink-5); }
+
+/* vega-tooltip caps every value cell at 300px and hides what overflows. The
+   USGS event URL measures 319px, so the tooltip cut it a few characters short
+   of the event id — the one part that says which earthquake it is. Every other
+   value here is short, so let the cell size to its content instead.
+
+   The `body` prefix is load-bearing: vega-tooltip injects its own stylesheet
+   when the handler is first created, which is after this file has loaded, so at
+   equal specificity theirs would win. One extra element selector settles it
+   without reaching for !important. */
+body #vg-tooltip-element table tr td.value {
+    max-width: none;
+}

@@ -98,6 +98,8 @@ def test_a_per_call_url_splits_the_views_and_memoising_does_not():
         'lat': [1.0, 2.0], 'lon': [3.0, 4.0], 'mag': [4.5, 5.1], 'sig': [311, 400],
         'depth': [7.0, 2.0], 'tsunami': [False, True], 'cdi': [3.4, 5.6],
         'alert': ['green', 'yellow'],
+        'url': ['https://earthquake.usgs.gov/earthquakes/eventpage/a',
+                'https://earthquake.usgs.gov/earthquakes/eventpage/b'],
     }).astype({'sig': 'int64'})
 
     def urls_in(spec, path='', found=None):

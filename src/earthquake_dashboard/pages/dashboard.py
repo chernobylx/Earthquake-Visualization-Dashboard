@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 import dash
 import dash_vega_components as dvc
@@ -6,7 +6,14 @@ import pandas as pd
 from dash import Input, Output, State, callback, dash_table, dcc, html
 from dash.exceptions import PreventUpdate
 
-from earthquake_dashboard.data_loader import DT_FORMAT, DataLoader, RequestParams
+from earthquake_dashboard.data_loader import (
+    DEFAULT_WINDOW_DAYS,
+    DT_FORMAT,
+    HIDDEN_COLUMNS,
+    DataLoader,
+    RequestParams,
+    utc_today,
+)
 from earthquake_dashboard.visualizer import DataVisualizer
 
 dash.register_page(__name__)
@@ -22,10 +29,9 @@ INK_2 = '#d8cfe8'
 INK_4 = '#938aa6'
 MONO = "'JetBrains Mono', ui-monospace, monospace"
 
-# The layout is assembled once at import (see the bottom of this file) rather
-# than through a cascade of callbacks. Only the three widgets whose dropdown
-# options come from the loaded frame are still built by a callback.
-
+# The layout is assembled in one pass per page load (see the bottom of this file)
+# rather than through a cascade of callbacks. Only the three widgets whose
+# dropdown options come from the loaded frame are still built by a callback.
 def build_page():
     return [
         html.Div(build_loader(), id='loader', className='dashboard'),
@@ -119,9 +125,16 @@ def build_date_range():
     widget = []
     widget.append(html.H4('Query USGS'))
     widget.append(html.H5('Date Range (UTC)'))
+    # Read at render, in UTC. date.today() is the host's local day, and this
+    # widget is labelled UTC; more to the point, the layout used to be built once
+    # at import, so whichever day the server started on was the day the picker
+    # showed until it was restarted -- on the hosted app, the deploy date.
+    today = utc_today()
     widget.append(dcc.DatePickerRange(
-        start_date=date.today()-timedelta(days=30),
-        end_date=date.today()+timedelta(days=1),
+        start_date=today - timedelta(days=DEFAULT_WINDOW_DAYS),
+        # Tomorrow, not today: both dates read as 00:00 UTC, so an end date of
+        # today would stop before today's events.
+        end_date=today + timedelta(days=1),
         start_date_placeholder_text='From',
         end_date_placeholder_text='Up To',
         stay_open_on_select=False,
@@ -467,6 +480,12 @@ def build_viz_button_widget():
     widget.append(html.Button('Render Chart', id='viz_button', className='button'))
     return widget
 
+def table_columns(df) -> list[dict]:
+    """The DataTable columns for a loaded frame."""
+    return [{'name': col, 'id': col} for col in df.columns
+            if col not in HIDDEN_COLUMNS]
+
+
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
     Output('data_table', 'columns'),
@@ -512,8 +531,7 @@ def update_data_table(start_date,
         dl = DataLoader(params)
         dl.query()
         df = dl.preprocess()
-        columns = [{"name": col, "id": col} for col in df.columns]
-        return df.to_dict('records'), columns
+        return df.to_dict('records'), table_columns(df)
 
 @callback(
     Output('data_table', 'data', allow_duplicate=True),
@@ -667,11 +685,17 @@ def update_visualizer(data,
     )
 
 
-# Built once at import. Dash reads this after every builder above is defined,
-# so the browser receives the whole control panel in the first response instead
-# of assembling it through a chain of callback round trips.
+# A function, not a component. Dash Pages accepts either and calls this one on
+# every page load, which is the whole point: as a module-level object it was
+# evaluated once when the process started, and the date picker then showed that
+# day's window for as long as the server lived. The browser still receives the
+# whole control panel in the first response -- the builders all run here, not
+# through a chain of callback round trips.
 #
 # id='layout' is load-bearing, not a leftover from the old callback chain:
 # styles.css keys the page's outer header/loader/viz grid off it, along with
 # the monospace font and the light text color every widget inherits.
-layout = html.Div(build_page(), id='layout')
+#
+# Dash passes the URL's query string as keyword arguments; this page reads none.
+def layout(**_query_params):
+    return html.Div(build_page(), id='layout')

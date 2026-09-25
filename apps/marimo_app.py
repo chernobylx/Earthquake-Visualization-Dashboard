@@ -58,7 +58,7 @@ app = marimo.App(
 @app.cell
 def _():
     import hashlib
-    from datetime import date, timedelta
+    from datetime import timedelta
 
     import altair as alt
     import marimo as mo
@@ -66,9 +66,12 @@ def _():
 
     from earthquake_dashboard.data_loader import (
         COL_TYPES,
+        DEFAULT_WINDOW_DAYS,
         DT_FORMAT,
+        HIDDEN_COLUMNS,
         DataLoader,
         RequestParams,
+        utc_today,
         vega_parse,
     )
     from earthquake_dashboard.visualizer import DataVisualizer
@@ -172,19 +175,21 @@ def _():
     REQUIRED_COLS = list(COL_TYPES)
 
     return (
+        DEFAULT_WINDOW_DAYS,
         DT_FORMAT,
         DataLoader,
         DataVisualizer,
+        HIDDEN_COLUMNS,
         NUMERIC_COLS,
         RequestParams,
         REQUIRED_COLS,
-        date,
         get_chart,
         get_df,
         mo,
         set_chart,
         set_df,
         timedelta,
+        utc_today,
     )
 
 
@@ -200,14 +205,20 @@ def _(mo):
 
 
 @app.cell
-def _(date, mo, timedelta):
+def _(DEFAULT_WINDOW_DAYS, mo, timedelta, utc_today):
     # --- query controls -------------------------------------------------
     # Nothing here hits the network. Cells that do are gated on the buttons
     # below, so dragging a slider never fires a request.
+    #
+    # utc_today(), not date.today(): both labels say UTC, and on a host behind
+    # UTC the local day disagrees for part of every day.
+    _today = utc_today()
     start_date = mo.ui.date(
-        value=date.today() - timedelta(days=30), label="From (UTC)"
+        value=_today - timedelta(days=DEFAULT_WINDOW_DAYS), label="From (UTC)"
     )
-    end_date = mo.ui.date(value=date.today() + timedelta(days=1), label="Up to (UTC)")
+    # Tomorrow, not today: USGS reads both dates as 00:00 UTC and so excludes the
+    # end date itself, which means ending at today drops today's events.
+    end_date = mo.ui.date(value=_today + timedelta(days=1), label="Up to (UTC)")
 
     magnitude = mo.ui.range_slider(
         start=0, stop=10, step=0.1, value=[2.0, 9.1], label="Magnitude", show_value=True
@@ -345,7 +356,7 @@ def _(
 
 
 @app.cell
-def _(get_df, mo):
+def _(HIDDEN_COLUMNS, get_df, mo):
     _frame = get_df()
     if _frame is None:
         _out = mo.md("*No data loaded yet.*")
@@ -358,7 +369,9 @@ def _(get_df, mo):
         # way. The frame the chart uses keeps its tz, which COL_TYPES requires
         # and DataVisualizer asserts.
         _out = mo.ui.table(
-            _frame.assign(time=_frame["time"].dt.tz_localize(None)),
+            _frame.assign(time=_frame["time"].dt.tz_localize(None)).drop(
+                columns=list(HIDDEN_COLUMNS), errors="ignore"
+            ),
             page_size=10,
             selection=None,
         )

@@ -110,6 +110,15 @@ def ink_for(background) -> str:
     return DARK_INK if (0.2126 * r + 0.7152 * g + 0.0722 * b) > 140 else LIGHT_INK
 
 
+# The faintest an earthquake may be drawn.
+#
+# The opacity scale always had a floor, at 0.1, which on a canvas this dark is
+# indistinguishable from nothing: a whole band of the catalogue -- every low
+# magnitude or low significance event, whichever variable drives opacity -- was
+# effectively absent from the map. High enough to read as a point, low enough to
+# leave the encoding a usable range against 1.
+OPACITY_FLOOR = 0.35
+
 DAY_MS = 24 * 60 * 60 * 1000
 
 # Bin widths to fall back on when a day is too coarse: 1 minute through 1 day.
@@ -406,7 +415,7 @@ class DataVisualizer:
                      projection ='equalEarth', phi = 0, theta = 0, scale = 100,
                      map_fill = 'darkgrey', map_stroke = 'lightgrey', background = 'darkgrey',
                      color_var = 'sig', color_scheme = 'magma',
-                     opacity_var = 'mag',
+                     opacity_var = 'mag', opacity_range = (OPACITY_FLOOR, 1.0),
                      size_var = 'mag', size_range = (10, 200),
                      filter_vars = ('time', 'mag', 'sig', 'depth', 'lon', 'lat'),
                      heatmap_x = 'time', heatmap_y = 'depth', heatmap_color = 'max(mag)'):
@@ -457,7 +466,7 @@ class DataVisualizer:
         SizeLegend = alt.Legend(title = size_var)
         Size = alt.Size(size_var, scale=SizeScale, legend=SizeLegend)
 
-        OpacityScale = alt.Scale(range = [0.1, 1], domain = [self.df[opacity_var[:-2]].min(), self.df[opacity_var[:-2]].max()])
+        OpacityScale = alt.Scale(range = list(opacity_range), domain = [self.df[opacity_var[:-2]].min(), self.df[opacity_var[:-2]].max()])
         OpacityLegend = alt.Legend(title = opacity_var)
         Opacity = alt.Opacity(opacity_var, scale=OpacityScale, legend=OpacityLegend)
 
@@ -466,7 +475,17 @@ class DataVisualizer:
         earth = self.create_map(map_fill, map_stroke, map_width, map_height, Projection)
 
         brush = alt.selection_interval(name = "brush")
-        quakes = alt.Chart(self.df).mark_circle().encode(
+        quakes = alt.Chart(self.df).mark_circle().transform_calculate(
+            # An exact UTC instant, built here rather than encoded as temporal.
+            # A `time:T` tooltip renders through the browser's own zone and, with
+            # no format, to the day -- "Jan 1, 2023" for an event whose identity
+            # is its moment. Every date this app shows is UTC, so the string says
+            # UTC and says the seconds. toDate() first because marimo serves the
+            # frame as a CSV, where `time` arrives as text and utcFormat over a
+            # string yields nothing; Dash inlines typed JSON and would not have
+            # shown it.
+            _utc_time = "utcFormat(toDate(datum.time), '%Y-%m-%d %H:%M:%S') + ' UTC'",
+        ).encode(
             longitude = 'lon:Q',
             latitude = 'lat:Q',
             size = Size,
@@ -475,11 +494,21 @@ class DataVisualizer:
                                 Color,
                                 alt.value('lightgrey')),
             order = alt.Order('time:T', sort='ascending'),
+            # A Vega tooltip is plain text, so the URL in it cannot be clicked.
+            # The href channel is what makes the mark itself a link; the tooltip
+            # row is there to say that it is one, and to be copyable.
+            href = alt.Href('url:N'),
             tooltip = [
                 alt.Tooltip('place:N', title='Location'),
+                alt.Tooltip('_utc_time:N', title='Time (UTC)'),
                 alt.Tooltip('mag:Q', title='Magnitude'),
                 alt.Tooltip('depth:Q', title='Depth (km)'),
-                alt.Tooltip('time:T', title='Time')
+                # Four decimals is about eleven metres, and the precision USGS
+                # itself reports. Unformatted, Vega prints whatever the float
+                # holds, which runs to a dozen meaningless digits.
+                alt.Tooltip('lat:Q', title='Latitude', format='.4f'),
+                alt.Tooltip('lon:Q', title='Longitude', format='.4f'),
+                alt.Tooltip('url:N', title='USGS'),
             ]
         ).properties(
             projection = Projection
@@ -516,7 +545,16 @@ class DataVisualizer:
 
         earth |= heatmap
         earth = earth.resolve_scale(color='independent')
-        earth = earth.properties(background = background)
+        earth = earth.properties(
+            background = background,
+            # Vega resolves an href through its loader, whose target defaults to
+            # the current tab -- so clicking an earthquake would replace the
+            # dashboard, losing the loaded records, every brush and the chart
+            # itself. vega-embed merges these options in, which reaches Dash and
+            # marimo alike; either front-end's own embed options would only ever
+            # fix one of them.
+            usermeta = {'embedOptions': {'loader': {'target': '_blank'}}},
+        )
 
         # Labels outnumber titles many times over, so they take the muted tone
         # and the titles carry the contrast. Gridlines and domains are pulled
