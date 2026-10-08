@@ -195,7 +195,7 @@ input, button, select, textarea { font: inherit; }
     color: var(--ink-4);
     text-wrap: pretty;
 }
-/* "Nothing redraws until you press Render Chart" is the one caution here. */
+/* The second help line is the caution: new rows clear the brushes. */
 .widget-help + .widget-help { color: #a3855f; margin-top: 6px; }
 
 /* ---- buttons ------------------------------------------------------------ */
@@ -218,14 +218,14 @@ input, button, select, textarea { font: inherit; }
 }
 .button:hover { background: #2b2239; border-color: #46395d; }
 
-/* The one primary action per card: Fetch Data, and Render Chart. */
-#load_button, #viz_button {
+/* The one primary action on the page: Fetch Data. */
+#load_button {
     background: var(--accent);
     color: #1a1206;
     border-color: var(--accent);
     font-weight: 600;
 }
-#load_button:hover, #viz_button:hover {
+#load_button:hover {
     background: var(--accent-hi);
     border-color: var(--accent-hi);
 }
@@ -456,10 +456,6 @@ button.dash-dropdown:hover .dash-dropdown-trigger { border-color: #46395d !impor
     padding: 0 !important;
 }
 
-/* Map tools read as adjustments to the picture, so they take the amber. */
-#map_tools_widget .dash-slider-range { background: var(--accent) !important; }
-#map_tools_widget .dash-slider-thumb { border-color: var(--accent) !important; }
-
 /* ---- the chart well ----------------------------------------------------- */
 
 .dashboard-output {
@@ -470,18 +466,80 @@ button.dash-dropdown:hover .dash-dropdown-trigger { border-color: #46395d !impor
 }
 .dashboard-output:hover { background: var(--panel-deep); }
 
+/* The spec sizes itself, so the well just fits it, scrolling sideways on a
+   screen narrower than the chart rather than squashing it. */
 #visualizer_output {
-    min-height: 95vh;
-    /* Pinned, not content-sized: the clientside callback in app.py measures this
-       box and feeds the result back into create_chart(height=...). If the box grew
-       to fit the chart, each Render Chart click would measure the previous chart
-       and render a taller one. */
-    max-height: 95vh;
-    overflow: auto;
+    overflow-x: auto;
     display: block;
     border-radius: var(--radius-sm);
 }
-#map { display: block; }
+.linked-views { display: block; }
+
+/* Until the table has rows there is no chart, and dash-vega-components cannot
+   clear one it has already drawn, so an empty table hides it instead. */
+.chart-empty {
+    display: none;
+    padding: 48px 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-4);
+}
+#visualizer.is-empty .chart-empty { display: block; }
+#visualizer.is-empty .linked-views,
+#visualizer.is-empty .chart-controls { display: none; }
+
+/* ---- the chart's own controls ------------------------------------------
+   vega-embed draws one .vega-bind per bound param into #chart_controls and
+   wires it straight to the view. display: contents lets each one sit in the
+   Linked views grid as a cell of its own, alongside How To Read. */
+.chart-controls { display: contents; }
+.chart-controls .vega-bind {
+    padding: 13px 16px;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    min-width: 0;
+}
+.chart-controls .vega-bind:hover { background: #1d1826; }
+.chart-controls .vega-bind label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px 10px;
+}
+.chart-controls .vega-bind-name {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+}
+.chart-controls input[type='range'] {
+    width: 100%;
+    margin: 0;
+    accent-color: var(--lilac-2);
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+/* The live value vega-embed prints after each slider. */
+.chart-controls input[type='range'] + span {
+    min-width: 4ch;
+    text-align: right;
+    font-size: 11px;
+    color: var(--ink-2);
+}
+.chart-controls select {
+    grid-column: 1 / -1;
+    width: 100%;
+    background: var(--field);
+    border: 1px solid var(--field-edge);
+    border-radius: var(--radius-xs);
+    color: var(--ink-2);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 9px;
+}
+.chart-controls select:hover { border-color: #46395d; }
 
 /* ---- records table ------------------------------------------------------ */
 

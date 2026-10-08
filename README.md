@@ -4,44 +4,40 @@
 
 An interactive dashboard for exploring earthquake data from the
 [USGS Earthquake Catalog API](https://earthquake.usgs.gov/fdsnws/event/1/), built with
-[Dash](https://dash.plotly.com/) and [Altair](https://altair-viz.github.io/)/Vega-Lite.
+[Dash](https://dash.plotly.com/) and [Vega-Lite](https://vega.github.io/vega-lite/).
 
 Query the live USGS catalog by date, magnitude, significance, depth, and geographic
-bounds, then explore what comes back through a linked set of views — a world map, a
-stack of brushable histograms, and a time–depth heatmap. Every view shares the same
-Vega-Lite selections, so a brush drawn in any one of them filters all the others.
+bounds, then explore what comes back through a linked set of views — a world map,
+brushable time and magnitude histograms, and a time–depth heatmap. Every view shares the same
+Vega-Lite selections, so a brush drawn on the map or either histogram filters all the
+others.
 
 **[Try the live dashboard](https://0be82526-8d32-4767-bbed-2b63946ff944.plotly.app/dashboard)** — hosted on Plotly Cloud, querying the USGS catalog in real time.
 
-![Linked views over 2,335 M2.5+ earthquakes from the past 30 days on a dark violet canvas: a world map colored by magnitude tracing the Pacific Ring of Fire, brushable time, magnitude and depth histograms, and a time-depth heatmap](docs/figures/dashboard.png)
+![Linked views over 1,892 M2.5+ earthquakes from the past 30 days: a gnomonic map centred on Africa, showing the quakes in view coloured by significance, time and magnitude histograms with the in-view counts drawn over grey totals, and a time-depth heatmap coloured by mean significance](docs/figures/dashboard.png)
 
 ## Features
 
 - **Live data loading** — query the USGS FDSN event API through a validated parameter
   object, preview the match count before committing to a download, and browse the raw
   records in a sortable, filterable table.
-- **Cross-filtered views** — the map, histograms, and heatmap share interval
-  selections. Brush a histogram or drag across the map and every other view responds.
-- **Configurable map** — three projections (Natural Earth, azimuthal equal-area,
-  Mercator), spin, tilt and zoom sliders that redraw the globe as you set them, and
-  free-text fill, stroke, and background colors. The chart picks readable text for
-  whatever canvas color you choose.
-- **Flexible encodings** — choose which variables drive point size, color, and opacity
-  on the map, which pair the heatmap aggregates over, and which columns become filter
-  histograms. Opacity has a floor, so the faintest earthquake is still a visible point
-  rather than a gap in the map.
+- **Cross-filtered views** — the map, a time histogram, a magnitude histogram and a
+  time–depth heatmap share interval selections. Brush the map or either histogram and
+  every other view narrows to match, drawn over grey bars that keep the unfiltered
+  totals in view.
+- **A map that moves in the browser** — fifteen projections, plus zoom, spin, tilt and
+  roll. They are the chart's own controls rather than the app's, so moving one redraws
+  the map at once with no trip to the server. On the orthographic, gnomonic and
+  stereographic projections the far side of the globe is hidden rather than drawn
+  through.
 - **Every point identifies its event** — hover an earthquake for its place, its instant
-  to the second in UTC, magnitude, depth, and coordinates to four decimals; click it to
-  open its record on earthquake.usgs.gov in a new tab.
-- **Time axes that follow the window** — the heatmap and time histogram size their bins
-  and switch between yearly, monthly, daily, and hourly tick formats based on the span of
-  the loaded data, so a one-month query doesn't render every tick as the same month and a
-  one-week query still gets around a dozen columns.
+  to the second in UTC, magnitude, depth, significance and coordinates to four
+  decimals; click it to open its record on earthquake.usgs.gov in a new tab.
 - **A dark, card-based interface** — a sticky header shows the query window and how many
   events are loaded, and the dashboard is laid out as Query, Loaded records, and Linked
   views cards.
 
-![The dashboard: a sticky header showing the query window and 2,335 loaded events, above the Query card's range sliders and buttons, the Loaded records table, and the Linked views chart controls](docs/figures/app-ui.png)
+![The dashboard: a sticky header showing the query window and 1,892 loaded events, above the Query card's range sliders and buttons, the Loaded records table, and the Linked views card's projection, zoom, spin, tilt, roll and magnitude-bin controls](docs/figures/app-ui.png)
 
 ## Quick start
 
@@ -79,24 +75,27 @@ steps; click **Launch dashboard →**, or **Dashboard** in the header, to reach 
    page loads. Both dates count as 00:00 UTC, so the end bound sits on tomorrow — an end
    date of today would stop before today's events.
 2. Click **Preview Count** to see how many events match, without downloading them.
-3. Click **Fetch Data** to load the records into the **Loaded records** table. Sorting or
-   filtering the table narrows what the chart draws.
-4. Click **Render Chart** in the **Linked views** card to build the map, histograms, and
-   heatmap.
+3. Click **Fetch Data** to load the records into the **Loaded records** table. The
+   **Linked views** chart draws itself from them; filtering the table narrows what it
+   draws.
 
-Spin, tilt, and zoom redraw the globe as soon as you release the slider. Every other chart
-control waits for **Render Chart**, so changing a dropdown doesn't re-encode thousands of
-rows before you've finished choosing. The header mirrors the query's date range and the
-number of events loaded — or matching, after a preview.
+The controls in the **Linked views** card — projection, zoom, spin, tilt, roll and the
+number of magnitude bins — belong to the chart itself and redraw it as you move them.
+New rows from the table rebuild the chart, which clears any brushes but keeps the camera
+where you left it; sorting the table changes nothing the chart draws, so it leaves it
+alone. The header mirrors the query's date range and the number of events loaded — or
+matching, after a preview.
 
 **Clear Table** empties the table and resets the count. Set `DASH_DEBUG=1` to start the app
 with Dash's debug tooling enabled.
 
 ## The marimo front-end
 
-The same `DataLoader` and `DataVisualizer` also drive a [marimo](https://marimo.io)
-notebook under `apps/`, so the chart is the same in both and only the widget layer
-differs:
+The same `DataLoader` also drives a [marimo](https://marimo.io) notebook under `apps/`.
+Its chart is a different one: the Altair figure built by `DataVisualizer`, with pickers for
+which columns drive point size, colour and opacity, which pair the heatmap aggregates over,
+and which columns become filter histograms, and time bins sized to the span of the loaded
+data. The Dash app draws the hand-written spec instead:
 
 ```bash
 pixi run -e alt marimo-app      # read-only app mode
@@ -182,13 +181,21 @@ counter shared across datasets, so two datasets hold *disjoint* id ranges: in a 
 the map's quakes ran 179–3528 while the heatmap's stream had no ids at all. The match then
 fails for every row and the heatmap empties the instant you brush the globe.
 
-It works as long as every view descends from the same identified dataset. Dash gets that
-free — it inlines the frame, and altair dedupes identical inline data into one entry. marimo
-did not: its transformer mints a fresh virtual file each time it runs, `create_chart` builds
-one `alt.Chart` per view, and the eight views of one figure ended up on eight different URLs
-and eight separate source nodes. The notebook now hands back one URL per distinct frame, so
-they share a source. `test_the_heatmap_and_the_map_read_the_same_dataset` guards the
-Dash-side invariant; the symptom of losing it is a silently empty heatmap, not a bad spec.
+It works as long as every view descends from the same identified dataset. In the Dash
+app's spec every quake layer reads the one named `eq` dataset that Python fills;
+`test_every_quake_layer_reads_the_one_shared_dataset` fails if a layer gains a source of its
+own, which is how the heatmap first arrived, fetching a test file by URL. In marimo the
+Altair chart had the same problem from another direction: its transformer mints a fresh
+virtual file each time it runs, `create_chart` builds one `alt.Chart` per view, and the
+eight views of one figure ended up on eight different URLs and eight separate source nodes.
+The notebook now hands back one URL per distinct frame, so they share a source, and
+`test_the_heatmap_and_the_map_read_the_same_dataset` guards it. Either way the symptom of
+losing it is a silently empty view, not a bad spec.
+
+**The time views bin by UTC day, whatever the query spans.** The time histogram and the
+heatmap use one column per day, which suits the 30-day default; a query over several years
+gives thousands of columns, each narrower than a pixel. The marimo notebook's Altair chart
+still sizes its bins to the loaded span.
 
 ## Architecture
 
@@ -198,8 +205,9 @@ layers:
 | Module | Responsibility |
 |---|---|
 | `data_loader.py` | `RequestParams`, a validated dataclass mirroring the USGS query parameters, and `DataLoader`, which counts, queries, and preprocesses against the live API and returns a typed GeoDataFrame |
-| `visualizer.py` | `DataVisualizer` checks the input frame's columns and dtypes, then composes the Altair chart: world map plus earthquake layer, per-variable histogram selectors, and a heatmap, all wired through shared selections |
-| `app.py` + `pages/` | The multi-page Dash app — layout, widgets, and the callbacks connecting user input to the two classes above |
+| `spec.py` + `specs/linked_views.vl.json` | The Dash app's chart: a hand-written Vega-Lite template, and `build_spec`, which inlines the table's rows as its `eq` dataset — times as UTC epoch milliseconds, which its own date expressions need — and carries the camera over from the last view |
+| `visualizer.py` | `DataVisualizer` checks the input frame's columns and dtypes, then composes the marimo notebook's Altair chart: world map plus earthquake layer, per-variable histogram selectors, and a heatmap, all wired through shared selections |
+| `app.py` + `pages/` | The multi-page Dash app — layout, widgets, and the callbacks connecting the query and the table to the chart |
 
 Keeping the API client and the chart factory out of the Dash layer means both can be
 exercised directly by the test suite, without standing up a server.
@@ -209,6 +217,7 @@ exercised directly by the test suite, without standing up a server.
 | Path | Purpose |
 |---|---|
 | `src/earthquake_dashboard/` | Installable package: API client, chart factory, Dash app |
+| `src/earthquake_dashboard/specs/` | `linked_views.vl.json`, the Dash app's chart |
 | `src/earthquake_dashboard/pages/` | `index.py` (the Quick start guide, at `/`) and `dashboard.py` (the Query, Loaded records, and Linked views cards, at `/dashboard`) |
 | `src/earthquake_dashboard/assets/` | `styles.css`, the interface's palette and component styling, and `backdrop.js`, the animated background |
 | `tests/` | pytest suite |
@@ -254,9 +263,8 @@ pixi run app                      # in one shell
 node docs/make_figures.mjs        # dashboard.png and app-ui.png
 ```
 
-It loads a query, sets the map to colour by magnitude, clicks through Preview Count /
-Render Chart, and writes both PNGs. `MIN_MAG`, `COLOR_VAR`, `BASE`, and `OUTDIR` override the
-defaults. Node 22+ only — no npm install, it uses the built-in WebSocket to speak CDP.
+It loads a query, clicks Preview Count and Fetch Data, waits for the chart to draw
+itself, and writes both PNGs. `MIN_MAG`, `BASE`, and `OUTDIR` override the defaults. Node 22+ only — no npm install, it uses the built-in WebSocket to speak CDP.
 
 The marimo figure comes from its own script, because that app has to be clicked through
 rather than waited on, and its widgets live in shadow roots:

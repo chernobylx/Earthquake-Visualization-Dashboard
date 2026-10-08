@@ -17,30 +17,33 @@ STEPS = [
     ('02', 'Preview count',
      'Asks USGS how many events match and downloads nothing.'),
     ('03', 'Fetch data',
-     'Pulls the matching records into the table, up to 20,000 per request.'),
+     'Pulls the matching records into the table, up to 20,000 per request, and draws '
+     'the linked views from them.'),
     ('04', 'Filter the table',
-     'Sort or type into the table’s filter row — the chart reads the narrowed frame, '
+     'Type into the table’s filter row and the chart redraws from the narrowed rows, '
      'not the full download.'),
-    ('05', 'Render chart',
-     'Builds the linked map, histograms and heatmap from whatever the table currently holds.'),
-    ('06', 'Explore data',
-     'Brush the map, a histogram or the heatmap — every other view cross-filters to the '
-     'same selection.'),
+    ('05', 'Move the map',
+     'Projection, zoom, spin, tilt and roll redraw the map as you move them, without '
+     'waiting on the server.'),
+    ('06', 'Brush the views',
+     'Drag across the map or either histogram — every other view narrows to the same '
+     'selection.'),
 ]
 
 GROUPS = [
     ('Map controls', [
-        ('Projection', 'Natural Earth, azimuthal equal-area or Mercator'),
-        ('Spin / Tilt', 'Rotate the globe east–west and north–south'),
+        ('Projection', 'Fifteen, from gnomonic and orthographic to Mercator'),
+        ('Spin / Tilt / Roll', 'Rotate the globe about each of its three axes'),
         ('Zoom', 'Scales the geography from 10 to 1000'),
     ]),
-    ('Encodings', [
-        ('Point size', 'Any numeric column, scaled by area'),
-        ('Point colour', 'Magnitude, depth, time or significance'),
-        ('Point opacity', 'Fades points by the metric you choose'),
+    ('The views', [
+        ('Map', 'Points sized by magnitude, coloured by significance'),
+        ('Histograms', 'Events per UTC day and per magnitude bin; grey bars are '
+                       'the totals'),
+        ('Heatmap', 'Day by depth, shaded by mean significance'),
     ]),
     ('Filtering', [
-        ('Brush', 'Drag any histogram to filter every other view'),
+        ('Brush', 'Drag either histogram to filter every other view'),
         ('Map select', 'Drag across the globe to filter by location'),
         ('Clear', 'Click outside a brushed area to release it'),
     ]),
@@ -54,9 +57,9 @@ GROUPS = [
 layout = html.Div([
     html.P('Quick start', className='guide-eyebrow'),
     html.H1('Query the USGS catalog, then brush it from any angle.'),
-    html.P('Every view shares one set of Vega-Lite selections, so a brush drawn in the map, '
-           'a histogram, or the heatmap filters all the others. Capped at 20,000 records '
-           'per request.', className='guide-lede'),
+    html.P('Every view shares one set of Vega-Lite selections, so a brush drawn on the map '
+           'or either histogram filters all the others. Capped at 20,000 records per '
+           'request.', className='guide-lede'),
 
     html.Div([
         html.Div([

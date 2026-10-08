@@ -14,7 +14,7 @@ from earthquake_dashboard.data_loader import (
     RequestParams,
     utc_today,
 )
-from earthquake_dashboard.visualizer import DataVisualizer
+from earthquake_dashboard.spec import CAMERA_PARAMS, refresh
 
 dash.register_page(__name__)
 
@@ -30,12 +30,12 @@ INK_4 = '#938aa6'
 MONO = "'JetBrains Mono', ui-monospace, monospace"
 
 # The layout is assembled in one pass per page load (see the bottom of this file)
-# rather than through a cascade of callbacks. Only the three widgets whose
-# dropdown options come from the loaded frame are still built by a callback.
+# rather than through a cascade of callbacks. The visualizer starts empty until
+# the table has rows to chart.
 def build_page():
     return [
         html.Div(build_loader(), id='loader', className='dashboard'),
-        html.Div(build_visualizer(), id='visualizer', className='dashboard'),
+        html.Div(build_visualizer(), id='visualizer', className='dashboard is-empty'),
     ]
 
 def build_loader():
@@ -253,232 +253,52 @@ def build_loader_buttons():
     return widget
 
 def build_visualizer():
+    # The chart is a hand-written Vega-Lite template (specs/linked_views.vl.json)
+    # rendered by one persistent component. Its own params -- projection, zoom,
+    # rotation, magnitude bins -- are inputs that vega-embed draws into
+    # #chart_controls and wires straight to the view, so moving them redraws in
+    # the browser without a round trip. Dash only ever sends new rows.
     return [
         html.Div(build_visualizer_control_panel(), id='visualizer_control_panel',
                  className='control-panel', **{'data-section': 'Linked views'}),
-        html.Div(['Visualization'], id='visualizer_output',
-                 className='dashboard-output visualization'),
-        dcc.Store(id='visualizer_dimensions', data={'width': None, 'height': None}),
+        html.Div([
+            html.Div('No rows to chart. Fetch Data, or loosen the table filter.',
+                     className='chart-empty'),
+            dvc.Vega(
+                id='map',
+                # The Dash id never reaches the DOM -- dash-vega-components renders
+                # into a div with its own generated id -- so styles and figure
+                # scripts find the chart by this class instead.
+                className='linked-views',
+                # Reported back on every change, so a data refresh -- which makes
+                # dash-vega-components rebuild the view from scratch -- can reopen
+                # it where the user left the camera.
+                signalsToObserve=list(CAMERA_PARAMS),
+                # Every slider tick otherwise reaches Dash 10 ms later, and each one
+                # makes the component JSON-compare its whole spec -- megabytes at
+                # the 20,000-row cap. Only the value a slider stops at matters.
+                debounceWait=250,
+                opt={'renderer': 'svg', 'actions': False, 'bind': '#chart_controls'},
+            ),
+        ], id='visualizer_output', className='dashboard-output visualization'),
+        # A digest of the rows on screen, so a refresh that changes none of them
+        # sends nothing. Compared on the server so the spec never travels back up.
+        dcc.Store(id='chart_rows_digest'),
     ]
 
 def build_visualizer_control_panel():
-    # Exactly eight children, as in the loader panel. Slots 4, 5 and 6 start
-    # empty: their dropdown options are derived from the loaded frame, so they
-    # are the only tiles still filled in by a callback.
     return [
-        html.Div(build_projection_widget(), id='projection_widget',
-                 className='widget dropdown-widget'),
-        html.Div(build_map_tools_widget(), id='map_tools_widget',
-                 className='widget slider-widget'),
-        html.Div(build_map_colors_widget(), id='map_colors_widget',
-                 className='widget text-widget'),
-        html.Div(id='map_aesthetics_widget', className='widget dropdown-widget'),
-        html.Div(id='heatmap_aesthetics_widget', className='widget dropdown-widget'),
-        html.Div(id='filter_widget', className='widget dropdown-widget'),
-        # This tile exists to hold grid slot w7: without it the Render Chart
-        # button shifts into w7. It carries the two behaviours nothing else
-        # explains.
         html.Div([
             html.H5('How To Read'),
-            html.Div('Drag across the map or any histogram to filter every panel.',
+            html.Div('Drag across the map or either histogram to filter every panel.',
                      className='widget-help'),
-            html.Div('Spin, tilt and zoom redraw as you set them; every other control waits for Render Chart.',
+            html.Div('Every control here redraws as you move it; new rows from the '
+                     'table reset the brushes but keep the camera.',
                      className='widget-help'),
-        ], id='visualizer_widget7', className='widget'),
-        html.Div(build_viz_button_widget(), id='viz_button_widget',
-                 className='widget button-widget'),
+        ], id='visualizer_help', className='widget'),
+        # vega-embed fills this with the template's bound params.
+        html.Div(id='chart_controls', className='chart-controls'),
     ]
-
-def build_projection_widget():
-    widget = []
-    # #projection_widget is overridden to a single column, so an extra child
-    # cannot scramble label/control pairing — the panel title goes here.
-    widget.append(html.H4('Chart Loaded Data'))
-    widget.append(html.H5('Map Projection',
-        title='Mercator clips near the poles and skews when the globe is tilted.'))
-    widget.append(
-        dcc.Dropdown(
-            options = [{'label': 'Natural Earth', 'value': 'naturalEarth1'},
-                       {'label': 'Azimuthal Equal-Area', 'value': 'azimuthalEqualArea'},
-                       {'label': 'Mercator', 'value': 'mercator'}],
-            value = 'naturalEarth1',
-            id = 'projection_dropdown',
-            className = 'dropdown'
-        )
-    )
-
-    return widget
-
-def build_map_tools_widget():
-    widget = []
-    widget.append(html.H5('Spin East-West:',
-        title='Drag right and the map centre moves west.'))
-    widget.append(dcc.Slider(
-        min=-179.9,
-        max=179.9,
-        step = 1,
-        value = 0,
-        marks = None,
-        tooltip={'placement': 'bottom', 'always_visible': True, 'template': '{value}°'},
-        id='phi_slider',
-        className='slider'
-    ))
-    widget.append(html.H5('Tilt North-South:',
-        title='Drag right and the map centre moves south.'))
-    widget.append(dcc.Slider(
-        min=-89.9,
-        max=89.9,
-        step = 1,
-        value = 0,
-        marks = None,
-        tooltip={'placement': 'bottom', 'always_visible': True, 'template': '{value}°'},
-        id='theta_slider',
-        className='slider'
-    ))
-    widget.append(html.H5('Zoom:',
-        title='Zooms the geography; the panel keeps its size.'))
-    widget.append(dcc.Slider(
-        min=10,
-        max=1000,
-        step = 10,
-        value = 100,
-        marks = None,
-        tooltip={'placement': 'bottom', 'always_visible': True},
-        id='scale_slider',
-        className='slider'
-    ))
-
-    return widget
-
-def build_map_colors_widget():
-    widgets = []
-    widgets.append(html.H5('Canvas Color:',
-        title='Any CSS color; tints the whole figure, not just the globe.'))
-    widgets.append(dcc.Input(
-        value='#16121d',
-        id='map_background',
-        className='text_input'
-    ))
-    widgets.append(html.H5('Land Color:'))
-    widgets.append(dcc.Input(
-        value='#3a2f4d',
-        id='map_fill',
-        className='text_input'
-    ))
-    widgets.append(html.H5('Border Color:',
-        title='Country outlines only; the lat/lon grid keeps its default color.'))
-    widgets.append(dcc.Input(
-        value='#b58ce8',
-        id='map_stroke',
-        className='text_input'
-    )) 
-    return widgets
-
-@callback(
-        Output('map_aesthetics_widget', 'children'),
-        Input('data_table', 'data'),
-        prevent_initial_callback = True
-)
-def build_map_aesthetics_widget(data):
-    df = pd.DataFrame(data)
-    cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
-    widget = []
-    widget.append(html.H5('Point Size:',
-        title='Scales each dot by area, 10 to 200 px.'))
-    widget.append(dcc.Dropdown(
-        options=cols,
-        value = 'sig',
-        id='size_dropdown',
-        className='dropdown'
-    ))
-    widget.append(html.H5('Point Color:'))
-    widget.append(dcc.Dropdown(
-        options=cols,
-        value = 'mag',
-        id='color_dropdown',
-        className='dropdown'
-    ))
-    widget.append(html.H5('Point Opacity:'))
-    widget.append(dcc.Dropdown(
-        options=cols,
-        value = 'mag',
-        id='alpha_dropdown',
-        className='dropdown'
-    ))
-
-    return widget   
-
-@callback(
-        Output('heatmap_aesthetics_widget', 'children'),
-        Input('data_table', 'data'),
-        prevent_initial_callback = True
-)
-def build_heatmap_aesthetics_widget(data):
-    df = pd.DataFrame(data)
-    if len(df):
-        df['time'] = pd.to_datetime(df['time'], utc=True, format='ISO8601')
-    cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
-    widget = []
-    widget.append(html.H5('Bin Across (X):'))
-    widget.append(dcc.Dropdown(
-        options=cols,
-        value = 'time',
-        id='x_dropdown',
-        className='dropdown'
-    ))
-    widget.append(html.H5('Bin Down (Y):',
-        title='Depth flips the axis; time always bins by whole years.'))
-    widget.append(dcc.Dropdown(
-        options=cols,
-        value = 'depth',
-        id='y_dropdown',
-        className='dropdown'
-    ))
-    # 'Cell Metric' rather than a second 'Color:' — this picks the statistic the
-    # cell color reports, not a column like the map's Point Color.
-    widget.append(html.H5('Cell Metric:',
-        title='The statistic each cell color reports for the quakes inside it.'))
-    widget.append(dcc.Dropdown(
-        options=[{'label': 'Max magnitude', 'value': 'max(mag)'},
-                 {'label': 'Mean depth', 'value': 'mean(depth)'},
-                 {'label': 'Magnitude (unaggregated)', 'value': 'mag'}],
-        value = 'max(mag)',
-        id='heatmap_color_dropdown',
-        className='dropdown'
-    ))
-
-    return widget   
-
-@callback(
-        Output('filter_widget', 'children'),
-        Input('data_table', 'data'),
-        prevent_initial_callback=True
-)
-def build_filter_widget(data):
-    df = pd.DataFrame(data)
-    if len(df):
-        df['time'] = pd.to_datetime(df['time'], utc=True, format='ISO8601')
-    cols = df.select_dtypes(include=['number', 'datetime64[ns, UTC]']).columns.tolist()
-    widget = []
-    widget.append(html.H5('Histograms:',
-        title='Each variable you pick gets a histogram you can drag to filter.'))
-    widget.append(dcc.Dropdown(
-        multi=True,
-        options=cols,
-        value=['time', 'mag', 'depth'],
-        placeholder='Pick variables to brush',
-        id='filter_dropdown',
-        className='dropdown multi-dropdown'
-    ))
-
-    return widget
-def build_viz_button_widget():
-    widget = []
-    widget.append(html.H5('Apply Settings',
-        title='Every control above is read fresh at the moment you click. '
-              'Spin, tilt and zoom redraw on their own.'))
-    widget.append(html.Button('Render Chart', id='viz_button', className='button'))
-    return widget
 
 def table_columns(df) -> list[dict]:
     """The DataTable columns for a loaded frame."""
@@ -597,92 +417,29 @@ def count_earthquakes(start_date,
 
 
 @callback(
-    Output('visualizer_output', 'children'),
-    State('data_table', 'derived_virtual_data'),
-    State('projection_dropdown', 'value'),
-    # Spinning or zooming the globe redraws straight away: they reframe the
-    # picture you are already looking at, so waiting for Render Chart makes them
-    # feel broken. Everything else stays a State and waits for the button, which
-    # is what keeps a slider drag from re-encoding thousands of rows per frame.
-    # Dash sliders fire on release, not per pixel, so this is one redraw each.
-    Input('phi_slider', 'value'),
-    Input('theta_slider', 'value'),
-    Input('scale_slider', 'value'),
-    State('map_fill', 'value'),
-    State('map_stroke', 'value'),
-    State('map_background', 'value'),
-    State('size_dropdown', 'value'),
-    State('color_dropdown', 'value'),
-    State('alpha_dropdown', 'value'),
-    State('x_dropdown', 'value'),
-    State('y_dropdown', 'value'),
-    State('heatmap_color_dropdown', 'value'),
-    State('filter_dropdown', 'value'),
-    Input('visualizer_dimensions', 'data'),
-    Input('viz_button', 'n_clicks'),
-    prevent_initial_call = True
+    Output('map', 'spec'),
+    Output('visualizer', 'className'),
+    Output('chart_rows_digest', 'data'),
+    Input('data_table', 'derived_virtual_data'),
+    State('map', 'signalData'),
+    State('chart_rows_digest', 'data'),
 )
-def update_visualizer(data,
-                      projection,
-                      phi,
-                      theta,
-                      scale,
-                      map_fill,
-                      map_stroke,
-                      map_background,
-                      size_var,
-                      color_var,
-                      alpha_var,
-                      x_var,
-                      y_var,
-                      heatmap_color,
-                      filter_vars,
-                      dimensions,
-                      n_clicks):
-    # Extract dimensions with fallbacks
-    if dimensions and isinstance(dimensions, dict):
-        width = dimensions.get('width')
-        height = dimensions.get('height')
-    else:
-        width = None
-        height = None
+def update_visualizer(data, camera, last_digest):
+    """Send the table's current rows to the chart, if they changed.
 
-    # Use fallback dimensions if capture failed
-    if width is None or width <= 0:
-        width = 400  # Fallback width
-    if height is None or height <= 0:
-        height = 200  # Fallback height
-
-    # This callback also fires when the Store is first created, before any data is loaded.
-    if not data:
-        raise PreventUpdate
-
-    df = pd.DataFrame(data)
-    df['time'] = pd.to_datetime(df['time'], utc=True,format='ISO8601')
-    dv = DataVisualizer(df)
-    spec = dv.create_chart(
-        width=width,
-        height=height,
-        projection=projection,
-        phi=phi,
-        theta=theta,
-        scale = scale,
-        map_fill=map_fill,
-        map_stroke=map_stroke,
-        size_var=size_var,
-        color_var=color_var,
-        opacity_var=alpha_var,
-        heatmap_x=x_var,
-        heatmap_y=y_var,
-        heatmap_color=heatmap_color,
-        filter_vars=filter_vars,
-        background = map_background,
-    ).to_dict()
-    return dvc.Vega(
-        id='map',
-        opt={"renderer": 'svg', 'actions': False},
-        spec=spec
-    )
+    derived_virtual_data is the table after its filter row and sort, so this
+    fires on Fetch Data, Clear Table, and every filter or sort. Any new spec
+    makes dash-vega-components rebuild the view and drop the brushes, so a sort
+    -- same rows, new order -- must send nothing; see spec.refresh.
+    """
+    r = refresh(data, camera, last_digest)
+    if r.empty:
+        # dash-vega-components ignores an empty spec rather than clearing the
+        # old view, so an emptied table hides the chart instead.
+        return dash.no_update, 'dashboard is-empty', None
+    if r.spec is None:
+        return dash.no_update, 'dashboard', dash.no_update
+    return r.spec, 'dashboard', r.digest
 
 
 # A function, not a component. Dash Pages accepts either and calls this one on
