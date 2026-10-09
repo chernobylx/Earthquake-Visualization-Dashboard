@@ -4,7 +4,7 @@
 //   node docs/make_figures.mjs    # in another
 //
 // Env overrides: CHROME (path to chrome.exe), BASE (app url), OUTDIR (where PNGs go),
-// MIN_MAG (query floor), COLOR_VAR / ALPHA_VAR (map encodings).
+// MIN_MAG (query floor).
 // Zero dependencies — Node >=22 speaks CDP over its built-in WebSocket.
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,37 +15,10 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8050';
 // leading-slash-before-drive-letter quirk of Windows file: URLs).
 const OUTDIR = process.env.OUTDIR || fileURLToPath(new URL('./figures/', import.meta.url));
 const TARGET_MIN_MAG = parseFloat(process.env.MIN_MAG ?? '2.5');
-const COLOR_VAR = process.env.COLOR_VAR || 'mag';
-const ALPHA_VAR = process.env.ALPHA_VAR || '';
 
 const page = await openPage({ port: 9333, width: 1600, height: 1000, scale: 2 });
-const { S, evalJs, waitFor, pressKey, goto } = page;
+const { evalJs, waitFor, pressKey, goto } = page;
 const shoot = (name, clip) => page.shoot(join(OUTDIR, name), clip);
-
-// Dash 4 dropdowns are a button + listbox popup; a real click drives them fine.
-async function setDropdown(id, value) {
-  await evalJs(`document.getElementById(${JSON.stringify(id)}).click()`);
-  await sleep(500);
-  const found = await evalJs(`(() => {
-    const t = [...document.querySelectorAll('[role="option"]')]
-      .find(o => o.textContent.trim() === ${JSON.stringify(value)});
-    if (!t) return false;
-    t.click();
-    return true;
-  })()`);
-  await sleep(900);
-  // Close the listbox: it stays open after the click and would sit over the
-  // data table in the screenshot.
-  await S('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
-  await S('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27, nativeVirtualKeyCode: 27 });
-  await evalJs(`document.activeElement && document.activeElement.blur()`);
-  await sleep(400);
-  const now = await evalJs(`(document.querySelector(${JSON.stringify('#' + id + ' .dash-dropdown-value')})||{}).textContent`);
-  if (!found || (now || '').trim() !== value) {
-    throw new Error(`could not set ${id} to ${value} (reads "${(now || '').trim()}")`);
-  }
-  console.log(`  ${id} = ${value}`);
-}
 
 // ---------- drive the app ----------
 console.log('navigating to /dashboard');
@@ -88,21 +61,24 @@ if (n <= 20) {
 console.log('clicking Load');
 await evalJs(`document.getElementById('load_button').click()`);
 await waitFor(`document.querySelectorAll('#data_table tbody tr').length > 5`, 'table rows', 240000);
-await sleep(3000); // aesthetics dropdowns repopulate from the new data
+await sleep(3000); // let the table render before the chart is waited on
 
 console.log(`  ${await evalJs(`document.querySelectorAll('#data_table tbody tr').length`)} rows in table`);
 
-// The aesthetics dropdowns are rebuilt from the freshly loaded frame, so set them now.
-// Default Color is depth: with most events shallow, magma renders nearly everything
-// black against a dark map. Magnitude spreads across the scale instead.
-if (COLOR_VAR) await setDropdown('color_dropdown', COLOR_VAR);
-if (ALPHA_VAR) await setDropdown('alpha_dropdown', ALPHA_VAR);
+// The chart draws itself once the table has rows; there is no button to press.
+// It is found by class because dash-vega-components never puts the Dash id on
+// the DOM.
+const CHART = '#visualizer_output .linked-views svg';
+await waitFor(`document.querySelector('${CHART}')`, 'vega svg', 300000);
+await waitFor(`document.querySelectorAll('#chart_controls .vega-bind').length > 0`, 'chart controls', 60000);
+await sleep(5000); // let vega settle its final layout pass
+console.log(`  ${await evalJs(`document.querySelectorAll('${CHART} path').length`)} marks rendered`);
 
 console.log('capturing app-ui.png');
 await evalJs(`window.scrollTo(0,0)`);
 await sleep(500);
-// Stop at the bottom of the visualizer controls — below that is the still-empty
-// visualization panel, which would leave most of the frame blank.
+// Header, query, table and the chart's controls; the chart itself is the
+// other figure.
 await shoot('app-ui.png', `(() => {
   const p = document.getElementById('visualizer_control_panel');
   if (!p) return null;
@@ -112,17 +88,9 @@ await shoot('app-ui.png', `(() => {
            h: Math.ceil(r.bottom + window.scrollY + 2) };
 })()`);
 
-console.log('clicking Visualize');
-await evalJs(`document.getElementById('viz_button').click()`);
-await waitFor(`document.querySelector('#visualizer_output svg')`, 'vega svg', 300000);
-await waitFor(`document.querySelectorAll('#visualizer_output svg path,#visualizer_output svg rect,#visualizer_output svg circle').length > 200`, 'chart marks', 300000);
-await sleep(5000); // let vega settle its final layout pass
-
-console.log(`  ${await evalJs(`document.querySelectorAll('#visualizer_output svg path,#visualizer_output svg rect,#visualizer_output svg circle').length`)} marks rendered`);
-
 console.log('capturing dashboard.png (chart only)');
 await shoot('dashboard.png', `(() => {
-  const s = document.querySelector('#visualizer_output svg');
+  const s = document.querySelector('${CHART}');
   if (!s) return null;
   const r = s.getBoundingClientRect();
   return { x: r.x + window.scrollX, y: r.y + window.scrollY, w: Math.ceil(r.width), h: Math.ceil(r.height) };
