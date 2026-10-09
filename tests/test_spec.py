@@ -247,3 +247,27 @@ def test_different_rows_rebuild_and_carry_the_camera():
 def test_no_rows_is_empty(data):
     r = refresh(data, camera=None, last_digest='abc')
     assert r.empty and r.spec is None and r.digest is None
+
+
+MAGMA = {'name': 'magma', 'extent': [0.2, 1]}
+
+
+def test_every_significance_colour_uses_trimmed_magma():
+    """One shared colour scale, one scheme.
+
+    The layers that colour by significance share a scale and a single legend,
+    so they have to agree. Magma's darkest fifth is dropped because it is close
+    to the chart's #0e0435 background, and most quakes have low significance:
+    they would all but vanish at the black end.
+    """
+    colours = []
+    for node in nodes(load_template()):
+        colour = node.get('encoding', {}).get('color')
+        if not colour:
+            continue
+        for definition in (colour, colour.get('condition', {})):
+            if 'field' in definition:
+                colours.append((node.get('description'), definition))
+    assert len(colours) == 4, [d for d, _ in colours]
+    for description, definition in colours:
+        assert definition.get('scale', {}).get('scheme') == MAGMA, description

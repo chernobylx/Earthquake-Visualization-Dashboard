@@ -164,7 +164,8 @@
                       ]
                     },
                     "field": "sig",
-                    "type": "quantitative"
+                    "type": "quantitative",
+                    "scale": {"scheme": {"name": "magma", "extent": [0.2, 1]}}
                   },
                   "value": "grey"
                 },
@@ -256,7 +257,7 @@
                       "scale": {"type": "utc", "domain": {"expr": "timeExtent"}}
                     },
                     "y": {"field": "*", "aggregate": "count"},
-                    "color": {"field": "sig", "type": "quantitative"}
+                    "color": {"field": "sig", "type": "quantitative", "scale": {"scheme": {"name": "magma", "extent": [0.2, 1]}}}
                   }
                 }
               ]
@@ -367,7 +368,7 @@
                     },
                     "x2": {"field": "mag_bin_end"},
                     "y": {"aggregate": "count", "title": "count"},
-                    "color": {"field": "sig", "type": "quantitative"}
+                    "color": {"field": "sig", "type": "quantitative", "scale": {"scheme": {"name": "magma", "extent": [0.2, 1]}}}
                   }
                 }
               ]
@@ -433,7 +434,8 @@
             "color": {
               "field": "sig",
               "type": "quantitative",
-              "aggregate": "mean"
+              "aggregate": "mean",
+              "scale": {"scheme": {"name": "magma", "extent": [0.2, 1]}}
             },
             "opacity": {
               "field": "*",
